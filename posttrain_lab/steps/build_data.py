@@ -88,6 +88,21 @@ class BuildData(Step):
         (ctx.runs_dir / "candidates.jsonl").write_text("".join(json.dumps(item) + "\n" for item in kept), encoding="utf-8")
         (ctx.runs_dir / "dropped.jsonl").write_text("".join(json.dumps(item) + "\n" for item in dropped), encoding="utf-8")
         by_cell = Counter((item["family"], item["level"]) for item in kept)
+        by_id = {item["id"]: item for item in candidates}
+        templates: dict[tuple, dict] = {}
+        for row in dropped:  # only the benchmark item's id is recorded, never its text
+            item = by_id[row["id"]]
+            entry = templates.setdefault(
+                (item["family"], item["level"], row["reason"], row.get("reference")),
+                {"family": item["family"], "level": item["level"], "reason": row["reason"], "nearest_benchmark_item": row.get("reference"), "count": 0, "similarities": [], "example": item["question"]},
+            )
+            entry["count"] += 1
+            entry["similarities"].append(row.get("similarity", 1.0))
+        for entry in templates.values():
+            values = entry.pop("similarities")
+            entry["similarity_low"], entry["similarity_high"] = min(values), max(values)
+        stats["dropped_by_template"] = sorted(templates.values(), key=lambda e: (e["family"], e["level"]))
+        stats["references_by_benchmark"] = dict(Counter(label.split(":", 1)[0] for label, _ in references))
         summary = {
             "seed": ctx.config.get("seed", 0),
             "generator_version": generators.GENERATOR_VERSION,
@@ -95,6 +110,7 @@ class BuildData(Step):
             "repeats_skipped": sum(row.get("repeats_skipped", 0) for row in rows),
             "leak_check": stats,
             "kept": len(kept),
+            "requested": {family: list(counts) for family, counts in ctx.config.get("counts", {}).items()},
             "by_family": {family: {f"L{level}": by_cell.get((family, level), 0) for level in generators.LEVELS} for family in ctx.config.get("counts", {})},
             "prompt_tokens": describe((item["prompt_tokens"] for item in kept), 1),
             "train_tokens": describe((item["train_tokens"] for item in kept), 1),

@@ -104,7 +104,10 @@ def build_sets(items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_
     sets: dict[str, dict] = {}
 
     def add(name: str, ids: list[str], **extra) -> None:
-        sets[name] = {"items": ids, "n_items": len(ids), "train_tokens": sum(tokens[i] for i in ids), **extra}
+        total = sum(tokens[i] for i in ids)
+        if "token_budget" in extra:  # a cell that ran out of items before it reached the budget
+            extra["short"] = total < 0.98 * extra["token_budget"]
+        sets[name] = {"items": ids, "n_items": len(ids), "train_tokens": total, **extra}
 
     budgets = {}
     for size in sizes:

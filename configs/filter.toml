@@ -8,7 +8,7 @@ settings = ["fast", "reasoning"]
 
 sizes = [250, 500, 1000, 2000, 4000]   # the size sweep for the middle band and the random draw
 main_size = 2000                        # the size of the main comparison
-dev_per_cell = 100                      # held out of every training set, for sanity checks only
+dev_per_cell = 150                      # held out of every training set, for sanity checks and the hyperparameter pilot
 
 progress_seconds = 60
 

@@ -130,7 +130,10 @@ def segment_response(tokens: Sequence[int], special: SpecialTokens, decode) -> P
             if kind == "tool_call":
                 try:
                     call = json.loads(decode(tool_ids))
-                    parsed.tool_calls.append({"name": call["name"], "args": call.get("args") or {}})
+                    arguments = call.get("args") or {}
+                    if not isinstance(call["name"], str) or not isinstance(arguments, dict):
+                        raise TypeError("a tool call needs a name and named arguments")
+                    parsed.tool_calls.append({"name": call["name"], "args": arguments})
                 except (ValueError, KeyError, TypeError):
                     parsed.well_formed = False
             kind = None

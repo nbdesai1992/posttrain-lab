@@ -308,8 +308,10 @@ def test_segmenting_a_reply_with_native_tool_calls():
     assert parsed.tool_calls == [{"name": "pwd", "args": {}}, {"name": "cd", "args": {"folder": "docs"}}]
     assert parsed.text == "" and parsed.n_thinking_tokens == 1 and parsed.ended and parsed.well_formed
     assert parsed.first_kind == "thinking"
-    broken = segment_response([1, 70, 6, 52, 4, 5], special, lambda ids: "".join(words.get(t, str(t)) for t in ids))
-    assert broken.tool_calls == [] and not broken.well_formed and broken.first_kind == "tool_call"
+    words[53] = '{"name": "cd", "args": ["docs"]}'  # arguments without names are not a usable call
+    for bad in (52, 53):
+        broken = segment_response([1, 70, 6, bad, 4, 5], special, lambda ids: "".join(words.get(t, str(t)) for t in ids))
+        assert broken.tool_calls == [] and not broken.well_formed and broken.first_kind == "tool_call"
 
 
 def test_segmenting_a_reply_cut_off_mid_thought():

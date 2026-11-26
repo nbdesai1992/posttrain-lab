@@ -6,15 +6,23 @@ survey_seed = 20261126   # the seed the survey sampled its benchmarks with
 ngram = 5                # character n-grams for the similarity check
 threshold = 0.5          # drop a candidate at or above this Jaccard similarity to any benchmark question
 
+# Counts were set from two small trial runs so that the middle band holds well over
+# 4,000 items and the easy and hard cells hold enough to match the token count of
+# 2,000 middle-band items. Easy items are short, so that takes close to 3,000 of them.
+# Levels 6 and 7 are there for the hard cell: most of their problems outrun the
+# reasoning setting's token limit. The table family stops at level 5 because its longer
+# tables run to 500 tokens and more per item and would take a third of the middle
+# band's tokens. Three entries are kept small because the leak check drops their
+# wording altogether.
 [counts]
-arithmetic = [24, 24, 24, 24, 24, 24, 24]
-stock_story = [24, 24, 24, 24, 24, 0, 0]
-rates = [24, 24, 24, 24, 24, 0, 0]
-sequence = [24, 24, 24, 24, 24, 24, 24]
-number_theory = [24, 24, 24, 24, 24, 24, 24]
-table = [24, 24, 24, 24, 24, 24, 24]
-code_trace = [24, 24, 24, 24, 24, 24, 24]
-calendar = [24, 24, 24, 24, 24, 24, 24]
-counting = [24, 24, 24, 24, 24, 24, 24]
-equations = [24, 24, 24, 24, 24, 24, 24]
-ordering = [24, 24, 24, 24, 24, 0, 0]
+arithmetic = [300, 150, 150, 150, 150, 150, 370]
+stock_story = [300, 150, 150, 150, 150, 0, 0]
+rates = [150, 150, 150, 150, 150, 0, 0]
+sequence = [150, 150, 150, 150, 150, 100, 370]
+number_theory = [300, 24, 150, 150, 150, 150, 370]
+table = [300, 150, 150, 150, 150, 0, 0]
+code_trace = [150, 150, 150, 150, 150, 220, 220]
+calendar = [400, 400, 150, 150, 150, 200, 100]
+counting = [300, 150, 150, 150, 150, 230, 220]
+equations = [24, 24, 150, 150, 150, 100, 370]
+ordering = [300, 150, 150, 150, 150, 0, 0]

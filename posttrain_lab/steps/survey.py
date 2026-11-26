@@ -372,7 +372,7 @@ def _setting_summary(benchmark: Benchmark, items: list[Item], rows: list[dict], 
             "thinking": describe((r["thinking_tokens"] for r in ran), 1),
             "answer": round(sum(r["answer_tokens"] for r in ran) / max(len(ran), 1), 1),
         },
-        "latency_s": describe(r["latency_s"] for r in ran),
+        "latency_s": describe(r["latency_s"] for r in ran if r["latency_s"] > 0),  # a reply read from the cache has no latency
         "calls_per_item": round(sum(r["calls"] for r in ran) / max(len(ran), 1), 2),
         "cut_off_by_max_tokens": sum(1 for r in ran if r.get("cut_off")),
         "context_overflow": sum(1 for r in rows if r.get("failed") == "context_overflow"),
@@ -651,7 +651,7 @@ def render_report(summary: dict) -> str:
             f"{_score(r)} | {signed(b.get('reasoning_minus_fast'))} | {capped} | {thinking} |"
         )
     for name, b in summary["not_run"].items():
-        add(f"| {b['title']} | {b['job']} | | | | | {b['reason']} | | |")
+        add(f"| {b['title']} | {b['job']} | {b['reason']} | | | | | | |")
     add("")
     add(
         "Differences are paired on the same items. A score that is a mean over groups (RewardBench 2 subsets, BFCL categories) "
@@ -677,7 +677,7 @@ def render_report(summary: dict) -> str:
         gap_new = "" if new_ref["gap_points"] is None else f"{new_ref['gap_points']:+.1f}{interval}"
         gap_old = "" if old_ref["gap_points"] is None else f"{old_ref['gap_points']:+.1f}{old_interval}"
         add(
-            f"| {job} | {', '.join(titles[n] for n in row['benchmarks'])} | {gap_old} | {old_ref['class']} | {gap_new} | "
+            f"| {job} | {'; '.join(titles[n] for n in row['benchmarks'])} | {gap_old} | {old_ref['class']} | {gap_new} | "
             f"{new_ref['class']} | {'yes' if row['class_changed'] else 'no'} |"
         )
     listed = {n for row in summary["jobs"].values() for n in row["benchmarks"]}
@@ -752,7 +752,7 @@ def render_report(summary: dict) -> str:
                 f"{s['cut_off_by_max_tokens']} | {s['context_overflow']} |"
             )
     add("")
-    add("For the multi-turn benchmark the figures are totals over all the model calls an item took.")
+    add("For the multi-turn benchmark the figures are totals over all the model calls an item took. Latency leaves out replies that were read from the cache.")
 
     judging = [(n, b) for n, b in summary["benchmarks"].items() if b["job"] == "Judging answers"]
     if judging:

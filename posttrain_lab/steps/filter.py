@@ -152,6 +152,7 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         "prompt_examples": [{"id": i, "family": by_id[i]["family"], "level": by_id[i]["level"]} for i in built["prompt_examples"]],
         "available_after_holding_out": built["available"],
         "targets": {"middle": max(ctx.config.get("sizes", SIZES)), "easy": ctx.config.get("main_size", MAIN_SIZE), "hard": ctx.config.get("main_size", MAIN_SIZE)},
+        "cut": what_was_cut(ctx.scratch.get("build_summary", {}), candidates, labeled, built),
         "usage": {
             "api_calls": len(sampled),
             "prompt_tokens": sum(c["prompt_tokens"] for c in sampled),
@@ -165,6 +166,29 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         "max_concurrency": ctx.config.get("client", {}).get("max_concurrency"),
         "canary": built["canary"],
     }
+
+
+def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict) -> list[dict]:
+    """Everything that was generated or asked for and is not in a training set, with the reason."""
+    leak = build.get("leak_check", {})
+    cut = [{"what": "repeated problems", "count": build.get("repeats_skipped", 0), "why": "the generator produced a problem it had already produced, which happens at the lowest levels where there are few distinct problems"}]
+    for entry in leak.get("dropped_by_template", []):
+        cut.append(
+            {
+                "what": f"{entry['family']} level {entry['level']}",
+                "count": entry["count"],
+                "why": f"leak check ({entry['reason']}): similarity {entry['similarity_low']} to {entry['similarity_high']} with benchmark item {entry['nearest_benchmark_item']}",
+                "example": entry["example"],
+            }
+        )
+    empty = [f"{family} level {level}" for family, counts in build.get("requested", {}).items() for level, count in enumerate(counts, 1) if not count]
+    if empty:
+        cut.append({"what": "levels with no candidates", "count": 0, "why": "stock_story, rates and ordering have no generator above level 5, and the table family stops at level 5 because its longer tables run to 500 training tokens and more per item", "levels": empty})
+    cut.append({"what": "candidates without a reply in both settings", "count": candidates - len(labeled), "why": "a call failed and stays pending"})
+    cut.append({"what": "held out of every training set", "count": built["held_out"], "why": "dev items for sanity checks and for fixing rank and learning rate, and the worked examples for the prompt-only arm"})
+    rare = sum(1 for row in labeled if row["cell"] == "rare")
+    cut.append({"what": "rare cell (fast right, reasoning wrong)", "count": rare, "why": "kept as items and eligible for the random sets, but no arm trains on this cell alone"})
+    return cut
 
 
 def figure_data(summary: dict) -> dict:
@@ -198,7 +222,7 @@ def render_report(summary: dict) -> str:
     add("## Candidates and the leak check")
     add("")
     add(
-        f"The generators produced {build.get('generated', 0):,} distinct problems in {len(build.get('by_family', {}))} families at five levels of difficulty, "
+        f"The generators produced {build.get('generated', 0):,} distinct problems in {len(build.get('by_family', {}))} families at up to {len(generators.LEVELS)} levels of difficulty, "
         f"after skipping {build.get('repeats_skipped', 0):,} repeats. Each was compared with the question text of {leak.get('references', 0):,} survey benchmark items: "
         f"an exact match, a match after normalizing case, punctuation and spacing, and a Jaccard similarity of character {leak.get('ngram')}-grams "
         f"of {leak.get('threshold')} or more with digits masked. The check dropped {sum(leak.get('dropped', {}).values())} "
@@ -207,10 +231,19 @@ def render_report(summary: dict) -> str:
         f"and {leak.get('pairs_compared_in_full', 0):,} pairs shared enough rare n-grams to be compared in full."
     )
     add("")
-    add("| family | level 1 | level 2 | level 3 | level 4 | level 5 |")
-    add("|---|---|---|---|---|---|")
+    add("Candidates kept, by family and level:")
+    add("")
+    add("| family | " + " | ".join(f"level {level}" for level in generators.LEVELS) + " |")
+    add("|---|" + "---|" * len(generators.LEVELS))
     for family, row in build.get("by_family", {}).items():
         add(f"| {family} | " + " | ".join(f"{row.get(f'L{level}', 0):,}" for level in generators.LEVELS) + " |")
+    add("")
+    add("What was cut, and why:")
+    add("")
+    add("| what | items | why |")
+    add("|---|---|---|")
+    for entry in summary.get("cut", []):
+        add(f"| {entry['what']} | {entry['count']:,} | {entry['why']} |")
 
     add("")
     add("## The four cells")
@@ -238,12 +271,13 @@ def render_report(summary: dict) -> str:
         total = sum(row[cell]["count"] for cell in CELLS)
         add(f"| {level[1:]} | {total:,} | " + " | ".join(f"{row[cell]['count']:,} ({row[cell]['share']:.0%})" for cell in CELLS) + " |")
     want, have = summary["targets"], summary["available_after_holding_out"]
-    short = [f"{cell} has {have[cell]:,} of the {want[cell]:,} wanted" for cell in want if have[cell] < want[cell]]
+    short = [f"{cell} has {have[cell]:,} of the {want[cell]:,} items wanted" for cell in want if have[cell] < want[cell]]
+    short += [f"the set {name} has {s['train_tokens']:,} of the {s['token_budget']:,} tokens it should match" for name, s in summary["sets"].items() if s.get("short")]
     add("")
     add(
         "After the dev items and the prompt-only examples are held out, the cells hold "
         + ", ".join(f"{have[cell]:,} {cell}" for cell in CELLS)
-        + ". "
+        + f". The arms need {want['middle']:,} middle-band items, and enough easy and hard items to match the training tokens of {want['easy']:,} middle-band items. "
         + ("Short of its size: " + "; ".join(short) + "." if short else "Every cell reaches the size the arms need.")
     )
 
@@ -268,7 +302,7 @@ def render_report(summary: dict) -> str:
     for name, s in summary["sets"].items():
         note = []
         if s.get("short"):
-            note.append("fewer items than asked for")
+            note.append("short of its size")
         if "unchanged_answers" in s:
             note.append(f"answers permuted among items, {s['unchanged_answers']} kept a right answer")
         if "token_budget" in s:
