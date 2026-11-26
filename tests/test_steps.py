@@ -39,7 +39,7 @@ class Counting(Step):
         self.ran.append(n)
         return {"text": result.text}
 
-    def finish(self, ctx, rows):
+    async def finish(self, ctx, rows):
         self.finished_with = rows
 
 
@@ -121,6 +121,22 @@ def test_fresh_reruns_units_but_reuses_cached_responses(tmp_path, renderer, make
     assert again.ran == [0, 1, 2, 3, 4]
     assert backend.sample_calls == []  # the model responses came from the cache
     assert len(ctx.store.path.read_text().splitlines()) == 10  # appended, not rewritten
+
+
+def test_only_reruns_units_of_one_kind(tmp_path, renderer, make_client):
+    class TwoKinds(Counting):
+        def plan(self, ctx):
+            return [Unit("ask" if n < 3 else "tell", {"n": n}, calls=1) for n in range(5)]
+
+    client, _ = make_client()
+    run(run_step(TwoKinds(), context(tmp_path, renderer, client)))
+    client, _ = make_client()
+    again = TwoKinds()
+    assert run(run_step(again, context(tmp_path, renderer, client), fresh=True, only="tell")) == 0
+    assert again.ran == [3, 4]
+    assert len(again.finished_with) == 5  # the summary still sees every unit
+    with pytest.raises(ValueError, match="no unit of kind"):
+        run(run_step(TwoKinds(), context(tmp_path, renderer, client), only="nothing"))
 
 
 def test_parallel_units_all_run(tmp_path, renderer, make_client):

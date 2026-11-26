@@ -53,7 +53,10 @@ class RetryPolicy:
     max_attempts: int = 5
     base_delay_s: float = 2.0
     max_delay_s: float = 60.0
-    call_timeout_s: float = 600.0
+    # A last resort against a call that never returns, not a latency bound. The SDK
+    # queues and retries on its own, and a cancelled request goes to the back of the
+    # service's queue when it is sent again, so keep this generous.
+    call_timeout_s: float = 1800.0
 
     def delay(self, attempt: int, retry_after_s: float | None = None) -> float:
         """Seconds to wait before attempt number ``attempt + 1``."""
@@ -178,6 +181,13 @@ class ModelClient:
         self.max_concurrency = limit
         self._semaphore = asyncio.Semaphore(limit)
 
+    async def warm_up(self) -> str:
+        """Create the base-model sampler before any timed work, and check that the
+        service reports a free base model for it. Returns the reported base model."""
+        base_model = await self.backend.sampler_base_model(self.model_id, None)
+        check_model_id(base_model, allow_paid=self.allow_paid)
+        return base_model
+
     # ---------------------------------------------------------------- records
 
     def _new_record(self, kind: str, tag: str, **fields: Any) -> CallRecord:
@@ -204,7 +214,7 @@ class ModelClient:
                 self.totals["prompt_tokens"] += record.prompt_tokens
                 self.totals["completion_tokens"] += record.completion_tokens
                 self.totals["thinking_tokens"] += record.thinking_tokens
-            elif record.kind in ("forward", "forward_backward", "train_step"):
+            elif record.kind in ("forward", "forward_backward", "train_step", "train_pipelined"):
                 self.totals["training_tokens"] += record.prompt_tokens
         if self.call_log is not None:
             append_jsonl(self.call_log, record.to_dict())
@@ -599,6 +609,21 @@ class TrainingRun:
         backend = self._client.backend
         return await self._client._training_call(
             "train_step", tag, examples, lambda: backend.train_step(self._handle, examples, learning_rate)
+        )
+
+    async def train_pipelined(
+        self, batches: Sequence[Sequence[Example]], learning_rate: float, tag: str = ""
+    ) -> tuple[list[dict], CallRecord]:
+        """Several updates in a row, each submitted before the previous one is awaited.
+
+        This is the fastest way to train: the service works in fixed cycles, and a
+        loop that waits for each result before sending the next batch misses cycles.
+        Logged as one call covering all the batches.
+        """
+        backend = self._client.backend
+        flat = [example for examples in batches for example in examples]
+        return await self._client._training_call(
+            "train_pipelined", tag, flat, lambda: backend.train_pipelined(self._handle, batches, learning_rate)
         )
 
     async def save_sampler_weights(

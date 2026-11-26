@@ -74,8 +74,9 @@ class Step:
     async def run_unit(self, unit: Unit, ctx: StepContext) -> dict:
         raise NotImplementedError
 
-    def finish(self, ctx: StepContext, rows: list[dict]) -> None:
-        """Called after a full run with one row per planned unit, in plan order."""
+    async def finish(self, ctx: StepContext, rows: list[dict]) -> None:
+        """Called at the end of every full run, with the stored row of each planned
+        unit in plan order. The place to write a summary into ``ctx.results_dir``."""
 
 
 class NotImplementedStep(Step):
@@ -118,8 +119,13 @@ def format_plan(step: Step, units: list[Unit], pending: list[Unit]) -> str:
     return "\n".join(lines)
 
 
-async def run_step(step: Step, ctx: StepContext, *, dry_run: bool = False, fresh: bool = False) -> int:
-    """Plan a step and run whatever is pending. Returns a process exit code."""
+async def run_step(
+    step: Step, ctx: StepContext, *, dry_run: bool = False, fresh: bool = False, only: str | None = None
+) -> int:
+    """Plan a step and run whatever is pending. Returns a process exit code.
+
+    ``only`` limits the run to units of one kind. Together with ``fresh`` it reruns
+    just those units."""
     if not step.implemented:
         ctx.out(f"{step.name}: not implemented yet")
         return 2
@@ -127,7 +133,13 @@ async def run_step(step: Step, ctx: StepContext, *, dry_run: bool = False, fresh
     keys = [unit.key(ctx.step) for unit in units]
     if len(set(keys)) != len(keys):
         raise ValueError(f"{step.name}: two planned units have the same inputs")
-    pending = [u for u, key in zip(units, keys) if fresh or key not in ctx.store]
+    if only is not None and only not in {u.kind for u in units}:
+        raise ValueError(f"{step.name} plans no unit of kind {only!r}")
+    pending = [
+        u
+        for u, key in zip(units, keys)
+        if (only is None or u.kind == only) and (fresh or key not in ctx.store)
+    ]
     for line in format_plan(step, units, pending).splitlines():
         ctx.out(line)
     if dry_run:
@@ -158,7 +170,7 @@ async def run_step(step: Step, ctx: StepContext, *, dry_run: bool = False, fresh
         return 3
 
     rows = [ctx.store.get(key) for key in keys]
-    step.finish(ctx, [row for row in rows if row is not None])
+    await step.finish(ctx, [row for row in rows if row is not None])
     totals = ctx.client.totals
     ctx.out(
         f"{step.name}: done in {time.monotonic() - started:.0f} s. "

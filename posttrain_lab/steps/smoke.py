@@ -29,7 +29,7 @@ from pathlib import Path
 from ..client import AccountBlockedError, CallRecord, ModelClient
 from ..render import DEFAULT_EFFORT, FAST_EFFORT
 from ..stats import describe, fit_line
-from ..store import append_jsonl
+from ..store import append_jsonl, read_jsonl
 from . import smoke_prompts as prompts
 from .base import Step, StepContext, Unit
 
@@ -61,6 +61,22 @@ def _summarize_events(events: list) -> dict:
         counts[label] += 1
         examples.setdefault(label, event.to_dict())
     return {"counts": dict(counts), "examples": list(examples.values())[:8]}
+
+
+def _batch_seconds(steps: list[dict]) -> list[float]:
+    """Seconds each batch took. An optimizer call awaited on its own is added to the
+    gradient call before it."""
+    seconds: list[float] = []
+    for step in steps:
+        if step["kind"] == "optim_step" and seconds:
+            seconds[-1] = round(seconds[-1] + step["latency_s"], 2)
+        else:
+            seconds.append(step["latency_s"])
+    return seconds
+
+
+def _is_throttle(label: str) -> bool:
+    return label.startswith(("http 429", "http 402", "queue ")) or "paused" in label
 
 
 def _verdict_mass(top: list[tuple[int, float]], decode) -> dict:
@@ -132,6 +148,22 @@ class Smoke(Step):
                 )
             )
 
+        lo = cfg.get("long_output", {})
+        if lo.get("requests_per_length", 0) > 0:
+            calls = lo["requests_per_length"] * len(lo["words"])
+            expected = int(lo["requests_per_length"] * sum(lo["words"]) * 1.4)  # about 1.4 tokens per word
+            units.append(
+                Unit(
+                    "long_output",
+                    {**lo, "seed": seed},
+                    calls=calls,
+                    prompt_tokens=calls * 45,
+                    completion_tokens=expected,
+                    max_completion_tokens=calls * lo["max_tokens"],
+                    label=f"replies of about {', '.join(str(w) for w in lo['words'])} words",
+                )
+            )
+
         bh = cfg.get("behaviour", {})
         if bh.get("per_kind", 0) > 0:
             items = prompts.behaviour_items(seed, bh["per_kind"])
@@ -183,6 +215,27 @@ class Smoke(Step):
                 Unit("training", {**tr, "seed": seed}, calls=calls, training_tokens=int(tokens), label=f"rank {tr['rank']}")
             )
 
+        pt = cfg.get("pipelined_training", {})
+        if pt.get("enabled", False):
+            short, long = self._training_pools(ctx, seed)
+            per_example = {
+                "short": sum(len(t) for t, _ in short) / len(short),
+                "long": sum(len(t) for t, _ in long) / len(long),
+            }
+            tokens = sum(pt["steps"] * ph["batch"] * per_example[ph["pool"]] for ph in pt["phases"])
+            last = pt["phases"][-1]
+            overlap = pt.get("parallel_clients", 0)
+            tokens += overlap * pt["steps"] * last["batch"] * per_example[last["pool"]]
+            units.append(
+                Unit(
+                    "pipelined_training",
+                    {**pt, "seed": seed},
+                    calls=1 + len(pt["phases"]) + (2 * overlap - 1 if overlap else 0),
+                    training_tokens=int(tokens),
+                    label=f"{pt['steps']} updates per phase",
+                )
+            )
+
         cx = cfg.get("context", {})
         if cx.get("enabled", False):
             near = cx["limit_tokens"] - cx["margin_tokens"]
@@ -199,7 +252,6 @@ class Smoke(Step):
                 )
             )
 
-        units.append(Unit("account", {"when": "after"}, label="after"))
         ctx.scratch["units"] = units
         return units
 
@@ -222,6 +274,9 @@ class Smoke(Step):
 
     async def run_unit(self, unit: Unit, ctx: StepContext) -> dict:
         assert ctx.client is not None
+        if "base_model_reported" not in ctx.scratch:
+            # Create the sampler first, so no timing probe pays for it.
+            ctx.scratch["base_model_reported"] = await ctx.client.warm_up()
         events_before = len(ctx.client.backend.events)
         started = time.time()
         row = await getattr(self, f"_run_{unit.kind}")(unit, ctx)
@@ -238,8 +293,7 @@ class Smoke(Step):
         row = {"snapshot": await backend.account_snapshot()}
         if unit.params["when"] == "before":
             row["client_config"] = await backend.client_config()
-            # Create the sampler now, so the timing probes do not pay for it.
-            row["base_model_reported"] = await backend.sampler_base_model(ctx.client.model_id, None)
+            row["base_model_reported"] = ctx.scratch["base_model_reported"]
             rate = row["snapshot"].get("storage_rate_usd_per_gb_month")
             if rate:
                 raise AccountBlockedError(
@@ -366,6 +420,57 @@ class Smoke(Step):
         ctx.out(
             f"    {len(records)} prompts in {wall:.0f} s: {row['prompt_tokens_per_min']:,.0f} prompt tok/min, "
             f"latency p50 {row['latency_s'].get('p50')} s"
+        )
+        return row
+
+    async def _run_long_output(self, unit: Unit, ctx: StepContext) -> dict:
+        """Replies of a few hundred to a couple of thousand tokens, to separate the
+        fixed time per request from the time per generated token."""
+        p = unit.params
+        client: ModelClient = ctx.client
+        client.set_concurrency(p["concurrency"])
+        salt = f"long-output-{uuid.uuid4().hex}"
+        jobs = [(words, index) for words in p["words"] for index in range(p["requests_per_length"])]
+        results = await asyncio.gather(
+            *(
+                client.sample(
+                    prompts.essay_prompt(index, words),
+                    effort=FAST_EFFORT,
+                    max_tokens=p["max_tokens"],
+                    force_answer=True,
+                    seed=index,
+                    salt=salt,
+                    tag=f"long-output-{words}",
+                )
+                for words, index in jobs
+            )
+        )
+        by_length = {}
+        for words in p["words"]:
+            records = [r.record for (w, _), r in zip(jobs, results) if w == words]
+            by_length[str(words)] = {
+                "requests": len(records),
+                "completion_tokens": describe((r.completion_tokens for r in records), 0),
+                "latency_s": describe(r.latency_s for r in records),
+                "cut_off_by_max_tokens": sum(1 for r in records if r.stop_reason == "length"),
+            }
+        records = [r.record for r in results]
+        fixed, per_token = fit_line([r.completion_tokens for r in records], [r.latency_s for r in records])
+        row = {
+            "concurrency": p["concurrency"],
+            "requests": len(records),
+            "by_requested_words": by_length,
+            "fit": {
+                "fixed_seconds_per_request": round(fixed, 2),
+                "milliseconds_per_completion_token": round(per_token * 1000, 2),
+                "completion_tokens_per_second_in_one_request": round(1 / per_token, 1) if per_token > 0 else None,
+            },
+            "throttled_requests": sum(1 for r in records if r.throttle_events > 0),
+        }
+        ctx.out(
+            f"    {len(records)} replies: {row['fit']['fixed_seconds_per_request']} s fixed plus "
+            f"{row['fit']['milliseconds_per_completion_token']} ms per token "
+            f"({row['fit']['completion_tokens_per_second_in_one_request']} tok/s in one request)"
         )
         return row
 
@@ -628,22 +733,16 @@ class Smoke(Step):
                 "tokens_per_batch": round(sum(s["tokens"] for s in gradient) / len(gradient)),
                 "seconds": round(seconds, 2),
                 "mean_seconds_per_batch": round(seconds / len(gradient), 2),
+                "seconds_per_batch": _batch_seconds(subset),
                 "examples_per_min": _per_minute(sum(s["examples"] or 0 for s in gradient), seconds),
                 "tokens_per_min": _per_minute(sum(s["tokens"] for s in gradient), seconds),
                 "loss_per_target_token": [s["loss_per_target_token"] for s in gradient],
             }
-        updates = [s for s in steps if s["kind"] == "train_step"]
-        intercept, slope = fit_line([s["tokens"] for s in updates], [s["latency_s"] for s in updates])
         return {
             "rank": p["rank"],
             "learning_rate": lr,
             "create_training_client_s": round(create_s, 2),
             "phases": phases,
-            "update_latency_fit": {
-                "seconds_per_update_at_zero_tokens": round(intercept, 2),
-                "seconds_per_1000_tokens": round(slope * 1000, 3),
-                "note": "least squares over the combined gradient and optimizer updates",
-            },
             "save_sampler_weights_s": round(save_record.latency_s, 2),
             "create_sampler_from_weights_s": round(load_record.latency_s, 2),
             "tinker_path": path,
@@ -652,6 +751,84 @@ class Smoke(Step):
             "adapter_samples": samples,
             "steps": steps,
         }
+
+    async def _run_pipelined_training(self, unit: Unit, ctx: StepContext) -> dict:
+        """Updates sent back to back, which is how a real run should train, and then
+        two training clients at once to see whether runs can overlap."""
+        p = unit.params
+        client: ModelClient = ctx.client
+        short, long = self._training_pools(ctx, p["seed"])
+        pools = {"short": short, "long": long}
+        lr = p["learning_rate"]
+        client.set_concurrency(4)
+
+        def batches(phase: dict) -> list[list]:
+            pool = pools[phase["pool"]]
+            return [[pool[(step * phase["batch"] + i) % len(pool)] for i in range(phase["batch"])] for step in range(p["steps"])]
+
+        def describe_updates(results: list[dict], record: CallRecord) -> dict:
+            seconds = [round(r["seconds"], 2) for r in results]
+            steady = seconds[1:] or seconds  # the first update also waits for a cycle to open
+            tokens_per_update = record.prompt_tokens / len(results)
+            mean_steady = sum(steady) / len(steady)
+            return {
+                "updates": len(results),
+                "tokens_per_update": round(tokens_per_update),
+                "seconds_per_update": seconds,
+                "steady_seconds_per_update": round(mean_steady, 2),
+                "tokens_per_min": _per_minute(tokens_per_update, mean_steady),
+                "examples_per_min": _per_minute(record.examples / len(results), mean_steady),
+                "total_seconds": round(record.latency_s, 2),
+                "throttle_events": record.throttle_events,
+            }
+
+        run = await client.create_training_run(rank=p["rank"], seed=p["seed"], tag="pipelined")
+        row: dict = {"rank": p["rank"], "create_training_client_s": round(run.created.latency_s, 2), "phases": {}}
+        for phase in p["phases"]:
+            results, record = await run.train_pipelined(batches(phase), lr, tag=phase["name"])
+            row["phases"][phase["name"]] = describe_updates(results, record)
+            d = row["phases"][phase["name"]]
+            ctx.out(
+                f"    {phase['name']}: {d['tokens_per_update']:,} tokens per update, "
+                f"{d['steady_seconds_per_update']} s per update, {d['tokens_per_min']:,.0f} tok/min"
+            )
+
+        overlap = p.get("parallel_clients", 0)
+        if overlap >= 2:
+            phase = p["phases"][-1]
+            try:
+                others = await asyncio.wait_for(
+                    asyncio.gather(
+                        *(client.create_training_run(rank=p["rank"], seed=p["seed"] + n, tag="pipelined-extra") for n in range(1, overlap))
+                    ),
+                    timeout=p.get("parallel_timeout_s", 180),
+                )
+                outcomes = await asyncio.wait_for(
+                    asyncio.gather(*(r.train_pipelined(batches(phase), lr, tag=f"overlap-{n}") for n, r in enumerate([run, *others]))),
+                    timeout=p.get("parallel_timeout_s", 180) * 2,
+                )
+                per_client = [describe_updates(results, record) for results, record in outcomes]
+                alone = row["phases"][phase["name"]]["steady_seconds_per_update"]
+                together = sum(d["steady_seconds_per_update"] for d in per_client) / len(per_client)
+                row["overlap"] = {
+                    "clients": overlap,
+                    "phase": phase["name"],
+                    "create_extra_clients_s": [round(r.created.latency_s, 2) for r in others],
+                    "per_client": per_client,
+                    "steady_seconds_per_update_alone": alone,
+                    "steady_seconds_per_update_together": round(together, 2),
+                    "combined_tokens_per_min": round(sum(d["tokens_per_min"] for d in per_client), 1),
+                }
+                ctx.out(
+                    f"    {overlap} clients at once: {together:.2f} s per update each (alone: {alone} s), "
+                    f"{row['overlap']['combined_tokens_per_min']:,.0f} tok/min combined"
+                )
+            except AccountBlockedError:
+                raise
+            except Exception as exc:
+                row["overlap"] = {"clients": overlap, "failed": f"{type(exc).__name__}: {str(exc)[:300]}"}
+                ctx.out(f"    {overlap} clients at once did not complete: {row['overlap']['failed']}")
+        return row
 
     async def _run_context(self, unit: Unit, ctx: StepContext) -> dict:
         p = unit.params
@@ -696,6 +873,12 @@ class Smoke(Step):
 
         limit = p["limit_tokens"]
         probes = [await probe("over the limit", p["over_limit_tokens"], 8, over=True)]
+        # The two probes below each send a prompt of about 64K tokens. Leave them out
+        # if the service was already throttling long prompts.
+        prefill = [ctx.result(u) for u in ctx.scratch["units"] if u.kind == "prefill"]
+        if any(row and row.get("throttled_requests") for row in prefill):
+            ctx.out("    long prompts were throttled earlier, so the two full-length probes are skipped")
+            return {"limit_tokens": limit, "probes": probes, "full_length_probes_skipped": True}
         if p.get("near_limit"):
             probes.append(await probe("just under the limit", limit - p["margin_tokens"], 8))
         if p.get("sum_over_limit"):
@@ -704,8 +887,11 @@ class Smoke(Step):
 
     # ---------------------------------------------------------------- report
 
-    def finish(self, ctx: StepContext, rows: list[dict]) -> None:
-        summary = build_summary(ctx.config, rows)
+    async def finish(self, ctx: StepContext, rows: list[dict]) -> None:
+        # Taken at the end of every run, so it always reflects the latest calls.
+        account_after = await ctx.client.backend.account_snapshot()
+        calls = list(read_jsonl(ctx.runs_dir / "calls.jsonl"))
+        summary = build_summary(ctx.config, rows, account_after, calls)
         ctx.results_dir.mkdir(parents=True, exist_ok=True)
         (ctx.results_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
         (ctx.results_dir / "REPORT.md").write_text(render_report(summary), encoding="utf-8")
@@ -719,7 +905,51 @@ def _version(package: str) -> str:
         return "not installed"
 
 
-def build_summary(config: dict, rows: list[dict]) -> dict:
+def _training_summary(row: dict, trimmed) -> dict:
+    out = trimmed(row, ("steps", "update_latency_fit"))
+    for name, phase in out["phases"].items():
+        if "seconds_per_batch" not in phase:
+            phase["seconds_per_batch"] = _batch_seconds([s for s in row.get("steps", []) if s["phase"] == name])
+    return out
+
+
+def _steady_rates(row: dict, calls: list[dict]) -> dict:
+    """Throughput up to the moment 95% of a level's requests were done. One slow
+    request at the end can stretch the wall time of a short probe a great deal."""
+    if row.get("skipped"):
+        return {}
+    tag = f"throughput-e{row['effort']}-c{row['concurrency']}"
+    records = [c for c in calls if c.get("tag") == tag and not c.get("error_class")][-row["requests_completed"] :]
+    if len(records) < 20:
+        return {}
+    start = min(c["started_at"] for c in records)
+    done = sorted(records, key=lambda c: c["ended_at"])[: max(1, int(len(records) * 0.95))]
+    seconds = done[-1]["ended_at"] - start
+    return {
+        "requests_per_min_to_95pct_done": _per_minute(len(done), seconds),
+        "completion_tokens_per_min_to_95pct_done": _per_minute(sum(c["completion_tokens"] for c in done), seconds),
+        "prompt_tokens_per_min_to_95pct_done": _per_minute(sum(c["prompt_tokens"] for c in done), seconds),
+    }
+
+
+def _overlap_summary(row: dict) -> dict:
+    """Whether the training clients in the overlap check really trained at the same
+    time. A client's later updates overlap another's only if its first update
+    finished before the other client was done."""
+    overlap = row.get("overlap")
+    if not overlap or "per_client" not in overlap:
+        return row
+    clients = overlap["per_client"]
+    first_done = [c["seconds_per_update"][0] for c in clients]
+    all_done = [c["total_seconds"] for c in clients]
+    overlap["trained_at_the_same_time"] = all(
+        first_done[i] < all_done[j] for i in range(len(clients)) for j in range(len(clients)) if i != j
+    )
+    overlap["longest_wait_for_first_update_s"] = max(first_done)
+    return row
+
+
+def build_summary(config: dict, rows: list[dict], account_after: dict | None = None, calls: list[dict] | None = None) -> dict:
     """Collect the stored rows into one document. Long per-item lists stay in runs/."""
 
     def of(kind: str) -> list[dict]:
@@ -741,13 +971,15 @@ def build_summary(config: dict, rows: list[dict]) -> dict:
         "versions": {p: _version(p) for p in ("tinker", "tml-renderers", "tinker-cookbook")},
         "config": {k: v for k, v in config.items() if k != "model_id"},
         "account_before": account.get("before", {}).get("snapshot"),
-        "account_after": account.get("after", {}).get("snapshot"),
+        "account_after": account_after,
         "client_config": account.get("before", {}).get("client_config"),
-        "throughput": [trimmed(r, ()) for r in of("throughput")],
+        "throughput": [{**trimmed(r, ()), **_steady_rates(r, calls or [])} for r in of("throughput")],
         "prefill": [trimmed(r, ()) for r in of("prefill")],
+        "long_output": [trimmed(r, ()) for r in of("long_output")],
         "behaviour": {r["mode"]: trimmed(r, ("items",)) for r in of("behaviour")},
         "verdict": [trimmed(r, ()) for r in of("verdict")],
-        "training": [trimmed(r, ("steps",)) for r in of("training")],
+        "training": [_training_summary(r, trimmed) for r in of("training")],
+        "pipelined_training": [_overlap_summary(trimmed(r, ())) for r in of("pipelined_training")],
         "context": [trimmed(r, ()) for r in of("context")],
         "service_events": {"counts": dict(events), "examples": examples[:12]},
     }
@@ -764,7 +996,7 @@ def render_report(summary: dict) -> str:
     add(
         f"Model ID `{summary['model_id']}`. Generated {summary['generated_at']} with tinker "
         f"{versions['tinker']}, tml-renderers {versions['tml-renderers']} and tinker-cookbook "
-        f"{versions['tinker-cookbook']}. Every number below was measured in this run unless it says otherwise. "
+        f"{versions['tinker-cookbook']}. Every number below was measured by the smoke step unless it says otherwise. "
         "The full data is in `summary.json` next to this file, and the raw rows are in `runs/smoke/`."
     )
 
@@ -773,17 +1005,42 @@ def render_report(summary: dict) -> str:
     add("")
     add("Short arithmetic prompts, temperature 0, closed loop at a fixed number of requests in flight.")
     add("")
-    add("| effort | in flight | requests | req/min | prompt tok/min | completion tok/min | latency p50 (s) | latency p95 (s) | tokens per reply | throttled | failed |")
-    add("|---|---|---|---|---|---|---|---|---|---|---|")
+    add("| effort | in flight | requests | req/min | req/min to 95% done | prompt tok/min | completion tok/min | latency p50 (s) | p95 (s) | max (s) | tokens per reply | throttled | failed |")
+    add("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for row in summary["throughput"]:
         if row.get("skipped"):
-            add(f"| | | skipped | | | | | | | {row.get('reason')} | |")
+            add(f"| | | skipped | | | | | | | | | {row.get('reason')} | |")
             continue
         add(
             f"| {row['effort']} | {row['concurrency']} | {row['requests_completed']} | {row['requests_per_min']:,} | "
+            f"{row.get('requests_per_min_to_95pct_done', '')} | "
             f"{row['prompt_tokens_per_min']:,.0f} | {row['completion_tokens_per_min']:,.0f} | "
-            f"{row['latency_s'].get('p50')} | {row['latency_s'].get('p95')} | "
+            f"{row['latency_s'].get('p50')} | {row['latency_s'].get('p95')} | {row['latency_s'].get('max')} | "
             f"{row['completion_tokens_per_request'].get('mean')} | {row['throttled_requests']} | {row['requests_failed']} |"
+        )
+    add("")
+    add(
+        "The rates divide by the wall time of the whole level, so a single slow request at the end pulls them down. "
+        "The column to 95% done stops the clock when 95% of the level's requests had returned."
+    )
+    for row in summary.get("long_output", []):
+        fit = row["fit"]
+        add("")
+        add("Longer replies, to separate the fixed time per request from the time per token:")
+        add("")
+        add("| words asked for | requests | completion tokens mean | latency p50 (s) | latency max (s) | cut off |")
+        add("|---|---|---|---|---|---|")
+        for words, group in row["by_requested_words"].items():
+            add(
+                f"| {words} | {group['requests']} | {group['completion_tokens'].get('mean'):,.0f} | "
+                f"{group['latency_s'].get('p50')} | {group['latency_s'].get('max')} | {group['cut_off_by_max_tokens']} |"
+            )
+        add("")
+        add(
+            f"A straight-line fit over these {row['requests']} replies, sent {row['concurrency']} at a time, gives "
+            f"{fit['fixed_seconds_per_request']} s of fixed time per request plus "
+            f"{fit['milliseconds_per_completion_token']} ms per completion token, which is about "
+            f"{fit['completion_tokens_per_second_in_one_request']} tokens per second inside one request."
         )
     for row in summary["prefill"]:
         add("")
@@ -799,20 +1056,45 @@ def render_report(summary: dict) -> str:
     add("## Throttling")
     add("")
     counts = summary["service_events"]["counts"]
-    if counts:
-        add("Events the service raised during the run, by kind.")
+    throttles = {label: n for label, n in counts.items() if _is_throttle(label)}
+    others = {label: n for label, n in counts.items() if not _is_throttle(label)}
+    levels = [row["concurrency"] for row in summary["throughput"] if not row.get("skipped")]
+    if throttles:
+        add("Throttling events during the run, by kind.")
         add("")
         add("| event | count |")
         add("|---|---|")
-        for label, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+        for label, count in sorted(throttles.items(), key=lambda kv: -kv[1]):
             add(f"| {label} | {count} |")
         add("")
         add("The first few, verbatim, are under `service_events.examples` in `summary.json`.")
     else:
         add(
-            "The service raised no throttling event at any level tested: no HTTP 429, no paused queue "
-            "state and no SDK warning. The limit, if there is one, is above the highest concurrency in the table."
+            f"No throttling was seen at any level, up to {max(levels) if levels else 0} requests in flight. "
+            "There was no HTTP 429, no paused queue state, no billing pause and no retry. "
+            "So this run cannot say what a throttled request looks like on the free tier, or where the limit is."
         )
+    add("")
+    add(
+        "From reading the SDK source (tinker 0.40.1), which is not the same as observing it: "
+        "an HTTP 429 on submit is swallowed by the SDK and the request is sent again after one second, "
+        "a queued request reports `paused_rate_limit` or `paused_capacity` with a reason through a queue-state "
+        "observer and is logged only after a long grace period, and an HTTP 402 is retried silently for up to an "
+        "hour behind the log line \"The job is paused due to billing status\". None of these raises an exception "
+        "to the caller, which is why the client in this repository records them itself and stops on a billing pause."
+    )
+    if others:
+        add("")
+        add("Other errors and warnings seen during the run.")
+        add("")
+        add("| event | count |")
+        add("|---|---|")
+        for label, count in sorted(others.items(), key=lambda kv: -kv[1]):
+            add(f"| {label} | {count} |")
+        http_errors = [e for e in summary["service_events"]["examples"] if e.get("type") == "http_error"]
+        if http_errors and not any(e.get("rate_headers") for e in http_errors):
+            add("")
+            add("None of the error responses carried a `Retry-After` header or a rate-limit header.")
 
     if summary["behaviour"]:
         add("")
@@ -831,7 +1113,8 @@ def render_report(summary: dict) -> str:
             )
         add("")
         add(
-            "Completion tokens include four to seven framing tokens per reply. "
+            "Completion tokens include the framing tokens around the content: seven for a reply with thinking, "
+            "four for a reply without, and two when the answer opening is forced. "
             "The forced-answer setting appends the two tokens that open a text answer to the prompt, "
             "so the model cannot reason first."
         )
@@ -870,20 +1153,36 @@ def render_report(summary: dict) -> str:
             f"Creating the client took {row['create_training_client_s']} s."
         )
         add("")
-        add("| phase | batches | tokens per batch | seconds per batch | examples/min | tokens/min |")
-        add("|---|---|---|---|---|---|")
+        add("| phase | batches | tokens per batch | seconds for each batch | mean seconds | examples/min | tokens/min |")
+        add("|---|---|---|---|---|---|---|")
         for name, phase in row["phases"].items():
+            each = ", ".join(f"{x:g}" for x in phase.get("seconds_per_batch", []))
             add(
-                f"| {name} | {phase['batches']} | {phase['tokens_per_batch']:,} | {phase['mean_seconds_per_batch']} | "
+                f"| {name} | {phase['batches']} | {phase['tokens_per_batch']:,} | {each} | {phase['mean_seconds_per_batch']} | "
                 f"{phase['examples_per_min']:,} | {phase['tokens_per_min']:,.0f} |"
             )
-        fit = row["update_latency_fit"]
         info = row.get("checkpoint") or {}
         size = info.get("size_bytes")
         add("")
+        updates = [
+            ph
+            for name, ph in row["phases"].items()
+            if ph.get("seconds_per_batch") and name not in ("forward only", "separate calls")
+        ]
+        if len(updates) >= 2:
+            small = min(updates, key=lambda ph: ph["tokens_per_batch"])
+            large = max(updates, key=lambda ph: ph["tokens_per_batch"])
+            slowest = max(max(ph["seconds_per_batch"]) for ph in updates)
+            add(
+                "Each batch here was awaited before the next was sent. "
+                f"The fastest batch of {small['tokens_per_batch']:,} tokens took {min(small['seconds_per_batch']):g} s and "
+                f"the fastest of {large['tokens_per_batch']:,} tokens took {min(large['seconds_per_batch']):g} s, while "
+                f"the slowest batch of all took {slowest:g} s. The time a batch takes follows the service's cycle and "
+                "its load more than the batch's size. "
+                "The first phase is a forward pass only, and the second awaits the gradient and optimizer calls one after the other."
+            )
+        add("")
         add(
-            f"A straight-line fit over the update steps gives {fit['seconds_per_update_at_zero_tokens']} s of fixed "
-            f"time per update plus {fit['seconds_per_1000_tokens']} s per 1,000 tokens. "
             f"Saving sampler weights took {row['save_sampler_weights_s']} s and creating a sampler from them took "
             f"{row['create_sampler_from_weights_s']} s. "
             + (f"The checkpoint is {size / 1e6:,.1f} MB. " if size else "")
@@ -901,6 +1200,46 @@ def render_report(summary: dict) -> str:
                 f"{sample['completion_tokens']} | {sample['latency_s']} |"
             )
 
+    for row in summary.get("pipelined_training", []):
+        add("")
+        add("## Training with updates sent back to back")
+        add("")
+        add(
+            "Each update was submitted before the previous one had returned, which the Tinker docs "
+            "recommend so that a request is always waiting when the service starts a cycle. "
+            "Seconds per update leave out the first update of each phase."
+        )
+        add("")
+        add("| phase | updates | tokens per update | seconds per update | examples/min | tokens/min |")
+        add("|---|---|---|---|---|---|")
+        for name, phase in row["phases"].items():
+            add(
+                f"| {name} | {phase['updates']} | {phase['tokens_per_update']:,} | {phase['steady_seconds_per_update']} | "
+                f"{phase['examples_per_min']:,} | {phase['tokens_per_min']:,.0f} |"
+            )
+        overlap = row.get("overlap")
+        if overlap and "failed" not in overlap:
+            waits = ", ".join(f"{c['seconds_per_update'][0]:g} s" for c in overlap["per_client"])
+            pauses = sum(c["throttle_events"] for c in overlap["per_client"])
+            add("")
+            if overlap.get("trained_at_the_same_time"):
+                add(
+                    f"With {overlap['clients']} training clients running the last phase at the same time, each took "
+                    f"{overlap['steady_seconds_per_update_together']} s per update against "
+                    f"{overlap['steady_seconds_per_update_alone']} s alone. Their first updates took {waits}."
+                )
+            else:
+                add(
+                    f"Then {overlap['clients']} training clients were started on the last phase at once. Their first "
+                    f"updates took {waits}. The slower client reported the queue state `paused_rate_limit` {pauses} "
+                    "times while it waited, and by the time it began the other had finished, so the two never "
+                    "trained at the same time. Once it began it ran at the usual speed. This run therefore shows that "
+                    "a second training client is rate limited at the start. It does not show whether two can train side by side."
+                )
+        elif overlap:
+            add("")
+            add(f"Running {overlap['clients']} training clients at once did not complete: {overlap['failed']}")
+
     for row in summary["context"]:
         add("")
         add("## Context limit")
@@ -914,13 +1253,25 @@ def render_report(summary: dict) -> str:
                 f"{probe['seconds']} | {str(detail)[:160]} |"
             )
 
+        accepted = [probe for probe in row["probes"] if probe["outcome"] == "accepted"]
+        if len(accepted) == 2:
+            add("")
+            add(
+                "A prompt longer than the window is refused at once. When the prompt fits, a `max_tokens` that would "
+                "pass the window is still accepted, so the service appears to cap generation at the room that is left. "
+                "The reply in the last row ended on its own before reaching that cap, so the cut-off itself was not "
+                f"observed. The second full-length prompt had {accepted[1].get('cached_prompt_tokens', 0):,} of its tokens "
+                "served from the prefix cache."
+            )
+
     before, after = summary.get("account_before") or {}, summary.get("account_after") or {}
     add("")
     add("## Spend")
     add("")
     add(
         f"Checkpoint storage rate on this account: ${before.get('storage_rate_usd_per_gb_month')} per GB-month. "
-        f"Checkpoints stored before the run: {before.get('checkpoint_count')}, after: {after.get('checkpoint_count')}. "
+        f"Checkpoints stored before the run: {before.get('checkpoint_count')}. Checkpoints listed after it: "
+        f"{after.get('checkpoints_listed')}, holding {(after.get('checkpoints_listed_bytes') or 0) / 1e6:,.0f} MB. "
         f"Estimated cost of all metered usage in the 24 hours up to the end of the run: "
         f"${after.get('usage_estimated_cost_usd')}. The service's usage records can lag by some minutes."
     )

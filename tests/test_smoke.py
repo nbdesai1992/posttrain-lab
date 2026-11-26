@@ -37,6 +37,12 @@ concurrency = 2
 requests = 3
 source_sentences = 5
 
+[long_output]
+concurrency = 2
+requests_per_length = 2
+words = [5, 10]
+max_tokens = 32
+
 [behaviour]
 per_kind = 2
 max_tokens = 32
@@ -72,6 +78,24 @@ pool = "long"
 batch = 2
 steps = 1
 
+[pipelined_training]
+enabled = true
+rank = 16
+learning_rate = 1e-4
+steps = 2
+parallel_clients = 2
+parallel_timeout_s = 10
+
+[[pipelined_training.phases]]
+name = "2 short examples"
+pool = "short"
+batch = 2
+
+[[pipelined_training.phases]]
+name = "2 long examples"
+pool = "long"
+batch = 2
+
 [context]
 enabled = true
 limit_tokens = 600
@@ -83,9 +107,12 @@ sum_over_max_tokens = 40
 """
 
 # throughput 2 * (3 + 4), prefill 3, behaviour 3 modes * 6 prompts, verdict 4 * 2,
-# training (create, save, load, 1 forward, 2 separate, 1 sample, 3 updates), context 3
-EXPECTED_CALLS = 14 + 3 + 18 + 8 + 10 + 3
-EXPECTED_SAMPLING_CALLS = 14 + 3 + 18 + 8 + 1 + 3
+# training (create, save, load, 1 forward, 2 separate, 1 sample, 3 updates),
+# pipelined training (create, 2 phases, 1 more client, 2 overlapping), context 3
+# long output 2 lengths * 2
+EXPECTED_CALLS = 14 + 3 + 4 + 18 + 8 + 10 + 6 + 3
+EXPECTED_SAMPLING_CALLS = 14 + 3 + 4 + 18 + 8 + 1 + 3
+UNITS = 14  # account, 4 throughput, prefill, long output, 3 behaviour, verdict, 2 training, context
 
 
 @pytest.fixture
@@ -118,7 +145,7 @@ def test_smoke_dry_run_counts_calls_without_a_backend(smoke):
     assert code == 0
     assert smoke.backends == []  # no backend was even constructed
     total = next(line for line in lines if line.startswith("total")).split()
-    assert total[1] == "13"  # units: 2 account, 4 throughput, prefill, 3 behaviour, verdict, training, context
+    assert int(total[1]) == UNITS
     assert int(total[3]) == EXPECTED_CALLS
     assert int(total[4].replace(",", "")) > 0  # prompt tokens were counted with the renderer
     assert not (smoke.root / "runs").exists()
@@ -140,16 +167,25 @@ def test_smoke_runs_end_to_end_and_writes_the_report(smoke):
     training = summary["training"][0]
     assert training["tinker_path"].startswith("tinker://")
     assert list(training["phases"]) == ["forward only", "separate calls", "2 short examples", "2 long examples"]
+    pipelined = summary["pipelined_training"][0]
+    assert list(pipelined["phases"]) == ["2 short examples", "2 long examples"]
+    assert pipelined["phases"]["2 long examples"]["updates"] == 2
+    assert pipelined["overlap"]["clients"] == 2 and len(pipelined["overlap"]["per_client"]) == 2
     assert len(summary["context"][0]["probes"]) == 3
     assert summary["context"][0]["probes"][0]["prompt_tokens"] > 600
     assert summary["context"][0]["probes"][1]["prompt_tokens"] <= 580
 
+    assert summary["account_after"]["usage_estimated_cost_usd"] == 0.0
+    assert summary["long_output"][0]["requests"] == 4
+    assert set(summary["long_output"][0]["by_requested_words"]) == {"5", "10"}
+    assert summary["pipelined_training"][0]["overlap"]["trained_at_the_same_time"] in (True, False)
+
     report = (smoke.root / "results" / "smoke" / "REPORT.md").read_text()
-    for heading in ("## Sampling throughput", "## Throttling", "## What effort 0.0 does", "## Training throughput", "## Context limit", "## Spend"):
+    for heading in ("## Sampling throughput", "## Throttling", "## What effort 0.0 does", "## Training throughput", "## Training with updates sent back to back", "## Context limit", "## Spend"):
         assert heading in report
 
     rows = (smoke.root / "runs" / "smoke" / "results.jsonl").read_text().splitlines()
-    assert len(rows) == 13
+    assert len(rows) == UNITS
     calls = (smoke.root / "runs" / "smoke" / "calls.jsonl").read_text().splitlines()
     assert len(calls) == EXPECTED_CALLS
 

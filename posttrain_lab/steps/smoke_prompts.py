@@ -125,6 +125,24 @@ def long_judgment_item(rng: random.Random, sentences: int) -> dict:
     return {"kind": "claim", "messages": _user(text), "answer": "yes" if supported else "no"}
 
 
+_TOPICS = [
+    "how a refrigerator keeps food cold",
+    "why the sky is blue at noon and red at sunset",
+    "how a suspension bridge carries its load",
+    "how vaccines train the immune system",
+    "why leap years exist",
+    "how a bill becomes law in a parliament",
+    "how sourdough bread rises without added yeast",
+    "how tides are caused by the moon and the sun",
+]
+
+
+def essay_prompt(index: int, words: int) -> list[dict]:
+    """A request for a reply of a chosen length, to time long generations."""
+    topic = _TOPICS[index % len(_TOPICS)]
+    return _user(f"Write about {words} words explaining {topic} for a general reader. Use plain paragraphs only.")
+
+
 def filler_message(sentences: int) -> list[dict]:
     """A long, dull user message of a controllable length, for the context-limit probe."""
     line = "The quick brown fox jumps over the lazy dog near the old stone bridge."

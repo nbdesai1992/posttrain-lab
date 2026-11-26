@@ -8,7 +8,7 @@ seed = 20261126
 [client]
 max_concurrency = 8
 max_attempts = 4
-call_timeout_s = 300
+call_timeout_s = 900          # a last resort; training updates can wait several cycles
 
 # Completion tokens per call assumed by --dry-run. Rough figures from the first calls.
 [estimates]
@@ -17,10 +17,12 @@ completion_tokens_effort_default = 90
 completion_tokens_forced = 8
 
 # Short prompts at each effort, with a fixed number of requests in flight.
+# The last level goes one step past the planned sweep. It was added after 32 in
+# flight showed no throttling, to find out whether throughput keeps scaling.
 [throughput]
 efforts = [0.0, 0.9]
-concurrency = [1, 4, 16, 32]
-requests = [30, 40, 48, 64]
+concurrency = [1, 4, 16, 32, 64]
+requests = [30, 40, 48, 64, 192]
 max_tokens = 512
 max_seconds = 150              # stop launching new requests at a level after this long
 throttled_fraction_stop = 0.5  # stop climbing once this share of requests was throttled
@@ -30,6 +32,14 @@ throttled_fraction_stop = 0.5  # stop climbing once this share of requests was t
 concurrency = 16
 requests = 24
 source_sentences = 100         # about 2,000 prompt tokens
+
+# Replies of a few hundred to a couple of thousand tokens, with the answer opening
+# forced, to measure the time per generated token.
+[long_output]
+concurrency = 8
+requests_per_length = 8
+words = [150, 500, 1200]
+max_tokens = 2500
 
 # The same varied prompts at effort 0.0, at the default 0.9, and at 0.0 with the
 # reply forced to open as an answer.
@@ -74,6 +84,27 @@ name = "16 long examples"
 pool = "long"
 batch = 16
 steps = 3
+
+# Updates submitted before the previous one has returned. The service trains in
+# fixed cycles, so this is how a real run should be driven. The last phase is then
+# repeated with two training clients at once, to see whether runs can overlap.
+[pipelined_training]
+enabled = true
+rank = 16
+learning_rate = 5.4e-4
+steps = 4
+parallel_clients = 2
+parallel_timeout_s = 240
+
+[[pipelined_training.phases]]
+name = "32 short examples"
+pool = "short"
+batch = 32
+
+[[pipelined_training.phases]]
+name = "16 long examples"
+pool = "long"
+batch = 16
 
 [context]
 enabled = true

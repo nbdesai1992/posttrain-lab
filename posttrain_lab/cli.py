@@ -30,6 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--config", type=Path, help="TOML config file (default: the step's file in configs/)")
         sub.add_argument("--dry-run", action="store_true", help="print planned calls and a token estimate, call nothing")
         sub.add_argument("--fresh", action="store_true", help="rerun units even if their results are stored")
+        sub.add_argument("--only", metavar="KIND", help="run only the units of this kind (see the kind column of --dry-run)")
         sub.add_argument("--runs-dir", type=Path, default=REPO_ROOT / "runs", help="raw rows, call logs and the response cache")
         sub.add_argument("--results-dir", type=Path, default=REPO_ROOT / "results", help="small summaries that are committed")
         sub.add_argument("--model-id", default=None, help=f"model ID to call (default: the config's, else {FREE_MODEL_ID})")
@@ -88,7 +89,7 @@ async def _run(args: argparse.Namespace, make_renderer: Callable, make_backend: 
         out=out,
     )
     if args.dry_run:
-        return await run_step(step, ctx, dry_run=True, fresh=args.fresh)
+        return await run_step(step, ctx, dry_run=True, fresh=args.fresh, only=args.only)
 
     backend = make_backend(args.allow_paid)
     client_config = config.get("client", {})
@@ -102,12 +103,12 @@ async def _run(args: argparse.Namespace, make_renderer: Callable, make_backend: 
         max_concurrency=args.concurrency or client_config.get("max_concurrency", 8),
         retry=RetryPolicy(
             max_attempts=client_config.get("max_attempts", 5),
-            call_timeout_s=client_config.get("call_timeout_s", 600.0),
+            call_timeout_s=client_config.get("call_timeout_s", 1800.0),
         ),
         step=step.name,
     )
     try:
-        return await run_step(step, ctx, dry_run=False, fresh=args.fresh)
+        return await run_step(step, ctx, dry_run=False, fresh=args.fresh, only=args.only)
     finally:
         await backend.close()
 

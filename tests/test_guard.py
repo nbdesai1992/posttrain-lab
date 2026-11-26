@@ -58,6 +58,16 @@ def test_adapter_on_a_paid_base_model_is_refused(make_client, renderer):
     assert backend.sample_calls == []
 
 
+def test_warm_up_refuses_a_sampler_the_service_reports_as_paid(make_client, renderer):
+    backend = FakeBackend(renderer)
+    backend.adapter_base_model = PAID_ID  # what the service says the sampler is built on
+    client, _ = make_client(backend)
+    with pytest.raises(PaidModelError):
+        run(client.warm_up())
+    backend.adapter_base_model = None
+    assert run(client.warm_up()) == FREE_MODEL_ID
+
+
 def test_adapter_on_the_free_base_model_is_sampled(make_client):
     client, backend = make_client()
     result = run(client.sample(QUESTION, max_tokens=64, model_path="tinker://run/sampler_weights/x"))

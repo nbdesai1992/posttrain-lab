@@ -194,6 +194,13 @@ class FakeBackend:
         await self.optim_step(run, learning_rate)
         return {**result, "optim_metrics": {}, "forward_backward_s": 0.0, "total_s": 0.0}
 
+    async def train_pipelined(self, run: Any, batches: Sequence[Sequence[Example]], learning_rate: float) -> list[dict]:
+        results = []
+        for index, examples in enumerate(batches):
+            step = await self.train_step(run, examples, learning_rate)
+            results.append({"metrics": step["metrics"], "seconds": 0.5, "elapsed_s": 0.5 * (index + 1)})
+        return results
+
     async def save_sampler_weights(self, run: Any, name: str, ttl_seconds: int | None) -> str:
         self.training_calls.append("save")
         return f"tinker://fake-run/sampler_weights/{name}"
@@ -209,6 +216,8 @@ class FakeBackend:
             "storage_rate_usd_per_gb_month": 0.0,
             "checkpoint_count": 0,
             "checkpoint_bytes": 0,
+            "checkpoints_listed": 0,
+            "checkpoints_listed_bytes": 0,
             "usage_estimated_cost_usd": 0.0,
             "usage_by_model_and_type": {},
         }

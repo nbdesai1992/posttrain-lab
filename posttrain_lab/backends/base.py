@@ -84,6 +84,12 @@ class Backend(Protocol):
 
     async def train_step(self, run: Any, examples: Sequence[Example], learning_rate: float) -> dict: ...
 
+    async def train_pipelined(
+        self, run: Any, batches: Sequence[Sequence[Example]], learning_rate: float
+    ) -> list[dict]:
+        """Several updates, each submitted before the previous one is awaited."""
+        ...
+
     async def save_sampler_weights(self, run: Any, name: str, ttl_seconds: int | None) -> str: ...
 
     async def checkpoint_info(self, tinker_path: str) -> dict:

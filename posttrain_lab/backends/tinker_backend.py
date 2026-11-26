@@ -458,6 +458,39 @@ class TinkerBackend:
             "total_s": time.monotonic() - started,
         }
 
+    async def train_pipelined(
+        self, run: Any, batches: Sequence[Sequence[Example]], learning_rate: float
+    ) -> list[dict]:
+        """Several updates with the next batch submitted before the current one is
+        awaited, so a request is always queued when the service starts a cycle.
+        Returns one entry per update with the time since the previous one finished."""
+        import tinker
+
+        results: list[dict] = []
+        started = last = time.monotonic()
+
+        async def collect(pending: tuple[Any, Any]) -> None:
+            nonlocal last
+            output = await _resolve(pending[0])
+            await _resolve(pending[1])
+            now = time.monotonic()
+            results.append({"metrics": self._metrics(output), "seconds": now - last, "elapsed_s": now - started})
+            last = now
+
+        pending = None
+        for examples in batches:
+            data = self._to_data(examples)
+            submitted = (
+                run.forward_backward(data, "cross_entropy"),
+                run.optim_step(tinker.AdamParams(learning_rate=learning_rate)),
+            )
+            if pending is not None:
+                await collect(pending)
+            pending = submitted
+        if pending is not None:
+            await collect(pending)
+        return results
+
     async def save_sampler_weights(self, run: Any, name: str, ttl_seconds: int | None) -> str:
         response = await _resolve(run.save_weights_for_sampler(name=name, ttl_seconds=ttl_seconds))
         return str(response.path)
@@ -487,6 +520,11 @@ class TinkerBackend:
         snapshot["checkpoint_bytes"] = sum(item.size_bytes for item in storage.data)
         costs = [item.estimated_monthly_cost_usd for item in storage.data]
         snapshot["storage_estimated_monthly_cost_usd"] = sum(c for c in costs if c is not None)
+        # The storage totals above are refreshed with a delay. The listing is current.
+        rest = await self._rest_client()
+        listing = await _resolve(rest.list_user_checkpoints(limit=100))
+        snapshot["checkpoints_listed"] = len(listing.checkpoints)
+        snapshot["checkpoints_listed_bytes"] = sum(c.size_bytes or 0 for c in listing.checkpoints)
 
         # The usage endpoint wants both ends on a UTC hour boundary.
         end = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
