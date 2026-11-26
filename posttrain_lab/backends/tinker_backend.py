@@ -86,6 +86,16 @@ class InklingRenderer:
         decoded = self._tokenizer.decode(list(tokens))
         return decoded if isinstance(decoded, str) else "".join(decoded)
 
+    def _find_token(self, name: str) -> int:
+        """The ID of a framing token by its name, or -1 if this template has none."""
+        for token in range(199990, 200600):
+            try:
+                if self.decode([token]) == name:
+                    return token
+            except Exception:
+                continue
+        return -1
+
     def _find_special_tokens(self) -> SpecialTokens:
         reference = [
             {"role": "user", "content": "x"},
@@ -103,6 +113,7 @@ class InklingRenderer:
                 content_text=names["<|content_text|>"],
                 end_message=names["<|end_message|>"],
                 end_sampling=names["<|content_model_end_sampling|>"],
+                content_tool_call=self._find_token("<|content_invoke_tool_json|>"),
             )
         except KeyError as missing:
             raise RuntimeError(

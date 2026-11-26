@@ -24,11 +24,11 @@ from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
 
-from ..benchmarks import BENCHMARKS, NOT_RUN, Benchmark, Item, sources
+from ..benchmarks import BENCHMARKS, NOT_RUN, Benchmark, Item, bfcl, sources
 from ..benchmarks.base import fixed_sample
 from ..client import AccountBlockedError, ModelClient
 from ..render import DEFAULT_EFFORT, FAST_EFFORT
-from ..stats import bootstrap, describe, paired_difference, percentile
+from ..stats import bootstrap, describe, macro_mean, paired_difference, percentile
 from ..store import JsonlStore, append_jsonl, read_jsonl, stable_hash
 from .base import Step, StepContext, Unit
 
@@ -43,7 +43,7 @@ SETTING_NOTES = {
     "slow": "effort 0.9, free-running",
     "effort_0": "effort 0.0, free-running (the shipped no-effort setting), on a fixed subsample",
 }
-GRADER_VERSION = 2  # bump to regrade everything after a grader change
+GRADER_VERSION = 4  # bump to regrade everything after a grader change
 CONTEXT_WINDOW = 65536
 TARGET_GAP, USABLE_GAP = 10.0, 3.0  # points, from the study design
 
@@ -173,6 +173,9 @@ class Survey(Step):
             )
             totals["latency_s"] += record.latency_s
             last.update(result=result)
+            if benchmark.reads_tool_calls and result.parsed.tool_calls:
+                totals["native_tool_calls"] += len(result.parsed.tool_calls)
+                return bfcl.native_calls_as_text(result.parsed.tool_calls)
             return result.text
 
         if benchmark.multi_step:
@@ -203,6 +206,8 @@ class Survey(Step):
                         [ctx.renderer.decode([token]), round(math.exp(logprob), 5)] for token, logprob in result.top_logprobs[0]
                     ]
         row.update({key: totals[key] for key in ("calls", "prompt_tokens", "completion_tokens", "thinking_tokens", "answer_tokens", "cut_off")})
+        if benchmark.reads_tool_calls:
+            row["native_tool_calls"] = totals["native_tool_calls"]
         row["latency_s"] = round(totals["latency_s"], 3)
         row.update(benchmark=benchmark.name, setting=setting, item=item.id)
         self._progress(ctx)
@@ -307,6 +312,15 @@ def _setting_summary(benchmark: Benchmark, items: list[Item], rows: list[dict], 
         "cut_off_by_max_tokens": sum(1 for r in ran if r.get("cut_off")),
         "context_overflow": sum(1 for r in rows if r.get("failed") == "context_overflow"),
     }
+    # The score among replies that finished inside the token budget, to tell a wrong
+    # answer from a reply that ran out of room.
+    finished = [(s, g) for s, g, r in zip(scores, groups, rows) if not r.get("failed") and not r.get("cut_off")]
+    if finished:
+        values, labels = [s for s, _ in finished], [g for _, g in finished]
+        out["finished"] = len(finished)
+        out["score_when_finished"] = round(macro_mean(values, labels) if benchmark.macro else sum(values) / len(values), 4)
+    if benchmark.reads_tool_calls:
+        out["replies_with_native_tool_calls"] = sum(1 for r in ran if r.get("native_tool_calls"))
     strict = [g["strict"] for g in grades if "strict" in g]
     if strict:
         out["bare_answer_format"] = round(sum(strict) / len(strict), 4)
@@ -331,6 +345,10 @@ def _paired(benchmark: Benchmark, items: dict[str, Item], first: dict[str, dict]
         macro=benchmark.macro,
         seed=seed,
     )
+
+
+def _gap_points(paired: dict | None) -> float | None:
+    return round(paired["estimate"] * 100, 1) if paired and paired["estimate"] is not None else None
 
 
 def soak_timeline(calls: list[dict], events: list[dict], bucket_minutes: int = 10) -> list[dict]:
@@ -362,7 +380,7 @@ def soak_timeline(calls: list[dict], events: list[dict], bucket_minutes: int = 1
                 "latency_p50_s": round(percentile([c["latency_s"] for c in good], 50), 2) if good else None,
                 "latency_p95_s": round(percentile([c["latency_s"] for c in good], 95), 2) if good else None,
                 "latency_max_s": round(max((c["latency_s"] for c in good), default=0), 1),
-                "retries": sum(c["attempts"] - 1 for c in members),
+                "retries": sum(max(c["attempts"] - 1, 0) for c in members),
                 "throttle_events": sum(c.get("throttle_events", 0) for c in members),
                 "service_events": dict(event_counts.get(bucket, {})),
             }
@@ -416,6 +434,8 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
             "classification": classify(benchmark, gap_points),
             "effort_0_subsample": {
                 "items": len(entry["reference"]),
+                "classification_if_effort_0_were_the_reference": classify(benchmark, _gap_points(
+                    _paired(benchmark, items, {i: fast[i] for i in ref if i in fast}, ref, seed))),
                 "fast_on_subsample": on_subsample.get("fast"),
                 "slow_on_subsample": on_subsample.get("slow"),
                 "effort_0_minus_fast": _paired(benchmark, items, {i: fast[i] for i in ref if i in fast}, ref, seed),
@@ -442,7 +462,7 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
             "completion_tokens": sum(c["completion_tokens"] for c in sampled),
             "thinking_tokens": sum(c["thinking_tokens"] for c in sampled),
             "failed_calls": sum(1 for c in calls if c.get("error_class")),
-            "retries": sum(c.get("attempts", 1) - 1 for c in calls),
+            "retries": sum(max(c.get("attempts", 1) - 1, 0) for c in calls),
             "throttled_calls": sum(1 for c in calls if c.get("throttle_events")),
         },
         "soak": soak_timeline(calls, events),
@@ -543,22 +563,50 @@ def render_report(summary: dict) -> str:
     add("")
     add("## The shipped no-effort setting, on a subsample")
     add("")
-    add("Free-running effort 0.0 still reasons before it answers. It ran on a fixed subsample of each benchmark, shown next to the other two settings on the same items.")
+    add(
+        "Free-running effort 0.0 still reasons before it answers. It ran on a fixed subsample of each benchmark, "
+        "shown next to the other two settings on the same items. The last column applies the same rule with effort_0 in place of slow."
+    )
     add("")
-    add("| benchmark | items | fast | effort_0 | slow | reasoning at effort_0 |")
-    add("|---|---|---|---|---|---|")
+    add("| benchmark | items | fast | effort_0 | slow | effort_0 minus fast | slow minus effort_0 | thinking tokens at effort_0 | rule against effort_0 |")
+    add("|---|---|---|---|---|---|---|---|---|")
+
+    def signed(paired: dict | None) -> str:
+        if not paired or paired["estimate"] is None:
+            return ""
+        return f"{paired['estimate'] * 100:+.1f} ({paired['low'] * 100:+.1f} to {paired['high'] * 100:+.1f})"
+
     for name, b in summary["benchmarks"].items():
         e = b["settings"].get("effort_0")
         sub = b["effort_0_subsample"]
         if not e:
             continue
-        thinking = e["tokens_per_answer"]["thinking"]
-        share = "" if not thinking.get("n") else f"mean {thinking['mean']:,.0f} thinking tokens"
         add(
             f"| {b['title']} | {e['n']} | {_score({'score': sub['fast_on_subsample']}) if sub['fast_on_subsample'] else ''} | {_score(e)} | "
-            f"{_score({'score': sub['slow_on_subsample']}) if sub['slow_on_subsample'] else ''} | {share} |"
+            f"{_score({'score': sub['slow_on_subsample']}) if sub['slow_on_subsample'] else ''} | {signed(sub['effort_0_minus_fast'])} | "
+            f"{signed(sub['slow_minus_effort_0'])} | {e['tokens_per_answer']['thinking'].get('mean', 0):,.0f} | "
+            f"{sub['classification_if_effort_0_were_the_reference']} |"
         )
 
+    add("")
+    add("## Replies that ran out of budget")
+    add("")
+    add(
+        "A reply is cut off when it reaches the token limit (8,192 tokens for slow and effort_0) before the model ends its turn. "
+        "A cut-off reply has no answer and scores zero. The table separates that from a wrong answer."
+    )
+    add("")
+    add("| benchmark | setting | replies | cut off | share cut off | score | score among replies that finished |")
+    add("|---|---|---|---|---|---|---|")
+    for name, b in summary["benchmarks"].items():
+        for setting in ("slow", "effort_0"):
+            s = b["settings"].get(setting)
+            if not s:
+                continue
+            add(
+                f"| {b['title']} | {setting} | {s['n']:,} | {s['cut_off_by_max_tokens']} | {s['cut_off_by_max_tokens'] / max(s['n'], 1):.0%} | "
+                f"{_pct(s['score']['estimate'])} | {_pct(s.get('score_when_finished'))} |"
+            )
     add("")
     add("## Tokens and time per answer")
     add("")
@@ -662,6 +710,8 @@ def render_report(summary: dict) -> str:
         "categories, which need an outside search service or an embedding model. "
         "BFCL's prompt text, AST checker, simulated back ends and state checks are used unchanged, while the reply decoding and the call "
         "execution are this repository's own, because BFCL's run model output through `eval`. "
+        "When the model made a call in its own tool-call format instead of the text format the prompt asks for, the call was read as the reply. "
+        "The multi-turn benchmark is a fixed sample of 50 items from each of its four categories. "
         "From RewardBench 2 the Ties subset is left out: it has several right answers per prompt and its own rating metric, which a pick-one task cannot score. "
         "JSONSchemaBench items whose schema does not fit the 64K context are counted as failures."
     )

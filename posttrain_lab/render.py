@@ -33,6 +33,7 @@ class SpecialTokens:
     content_text: int
     end_message: int
     end_sampling: int
+    content_tool_call: int = -1  # opens the JSON of a native tool call, if the model has one
 
 
 @dataclass
@@ -49,6 +50,8 @@ class ParsedResponse:
     first_text_index: int | None = None  # index of the first answer token in the reply
     ended: bool = False  # the model closed its turn (it was not cut off by max_tokens)
     well_formed: bool = True  # the framing was as expected
+    # Calls the model made in its own tool-call format, as {"name": ..., "args": {...}}.
+    tool_calls: list[dict] = field(default_factory=list)
     text_token_ids: list[int] = field(default_factory=list, repr=False)
 
     def to_dict(self) -> dict:
@@ -78,42 +81,58 @@ class Renderer(Protocol):
 
 
 def segment_response(tokens: Sequence[int], special: SpecialTokens, decode) -> ParsedResponse:
-    """Split sampled tokens into thinking and answer parts by their framing tokens."""
+    """Split sampled tokens into thinking and answer parts by their framing tokens.
+
+    A native tool call is a model message whose header names the tool and whose
+    content, after the tool-call marker, is JSON. Those are collected separately.
+    """
+    import json
+
     parsed = ParsedResponse(n_tokens=len(tokens))
     thinking_ids: list[int] = []
+    tool_ids: list[int] = []
     kind: str | None = None  # the kind of message currently open
-    expect_kind = False  # the previous token opened a model message
+    expect_kind = False  # a model message has started and its content marker has not come yet
     for index, token in enumerate(tokens):
         if token == special.end_sampling:
             parsed.ended = True
             parsed.n_framing_tokens += 1
-            if kind is not None:
+            if kind is not None or expect_kind:
                 parsed.well_formed = False
-            kind = None
+            kind, expect_kind = None, False
             continue
         if token == special.message_model:
             parsed.n_framing_tokens += 1
-            if kind is not None:
+            if kind is not None or expect_kind:
                 parsed.well_formed = False
-            kind = None
-            expect_kind = True
+            kind, expect_kind = None, True
             continue
         if expect_kind:
-            expect_kind = False
+            parsed.n_framing_tokens += 1
             if token == special.content_thinking:
                 kind = "thinking"
             elif token == special.content_text:
                 kind = "text"
+            elif token == special.content_tool_call:
+                kind, tool_ids = "tool_call", []
+            elif token == special.end_message:
+                parsed.well_formed = False  # a message with no content marker
+                expect_kind = False
+                continue
             else:
-                # An unknown content type (a tool call, for example). Count it as framing.
-                kind = "other"
-                parsed.well_formed = False
-            parsed.n_framing_tokens += 1
+                continue  # header tokens before the content marker, such as a tool's name
+            expect_kind = False
             if parsed.first_kind is None:
                 parsed.first_kind = kind
             continue
         if token == special.end_message:
             parsed.n_framing_tokens += 1
+            if kind == "tool_call":
+                try:
+                    call = json.loads(decode(tool_ids))
+                    parsed.tool_calls.append({"name": call["name"], "args": call.get("args") or {}})
+                except (ValueError, KeyError, TypeError):
+                    parsed.well_formed = False
             kind = None
             continue
         if kind == "thinking":
@@ -122,6 +141,8 @@ def segment_response(tokens: Sequence[int], special: SpecialTokens, decode) -> P
             if parsed.first_text_index is None:
                 parsed.first_text_index = index
             parsed.text_token_ids.append(token)
+        elif kind == "tool_call":
+            tool_ids.append(token)
         else:
             # Content outside any message: the framing is not what we expect.
             parsed.well_formed = False

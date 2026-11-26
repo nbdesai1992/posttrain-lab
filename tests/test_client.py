@@ -300,6 +300,18 @@ def test_segmenting_a_reply_with_thinking():
     assert parsed.ended and parsed.well_formed
 
 
+def test_segmenting_a_reply_with_native_tool_calls():
+    special = SpecialTokens(message_model=1, content_thinking=2, content_text=3, end_message=4, end_sampling=5, content_tool_call=6)
+    words = {50: '{"name": "pwd", "args": {}}', 51: '{"name": "cd", "args": {"folder": "docs"}}', 52: "not json"}
+    tokens = [1, 2, 10, 4, 1, 70, 6, 50, 4, 1, 71, 72, 6, 51, 4, 5]
+    parsed = segment_response(tokens, special, lambda ids: "".join(words.get(t, str(t)) for t in ids))
+    assert parsed.tool_calls == [{"name": "pwd", "args": {}}, {"name": "cd", "args": {"folder": "docs"}}]
+    assert parsed.text == "" and parsed.n_thinking_tokens == 1 and parsed.ended and parsed.well_formed
+    assert parsed.first_kind == "thinking"
+    broken = segment_response([1, 70, 6, 52, 4, 5], special, lambda ids: "".join(words.get(t, str(t)) for t in ids))
+    assert broken.tool_calls == [] and not broken.well_formed and broken.first_kind == "tool_call"
+
+
 def test_segmenting_a_reply_cut_off_mid_thought():
     parsed = segment_response([1, 2, 10, 11], SPECIAL, decode)
     assert not parsed.ended and parsed.text == "" and parsed.first_text_index is None

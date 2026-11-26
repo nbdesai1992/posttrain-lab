@@ -11,6 +11,10 @@ versions pull in every provider's SDK, need tree-sitter for Java and JavaScript,
 run model output through ``eval``. The ports below follow BFCL's logic and never
 evaluate model output as code. Scores are from this harness, not BFCL's.
 
+When the model is free to reason it sometimes ignores the text format BFCL asks for
+and makes the call in its own tool-call format. Those calls are read as the reply,
+in every setting alike (``native_calls_as_text``).
+
 Left out: ``simple_java`` and ``simple_javascript`` (their decoders need
 tree-sitter), and the agentic categories ``web_search`` and ``memory`` (an outside
 search service, and memory back ends with an embedding model).
@@ -193,6 +197,12 @@ def call_strings(decoded: list[dict]) -> list[str]:
     ]
 
 
+def native_calls_as_text(tool_calls: list[dict]) -> str:
+    """Calls the model made in its own tool-call format, written the way BFCL asks
+    for them, so the rest of the harness treats both forms alike."""
+    return "[" + ", ".join(call_strings([{call["name"]: call["args"]} for call in tool_calls])) + "]"
+
+
 def decode_for_execution(text: str) -> list[str]:
     return call_strings(decode_calls(text))
 
@@ -271,6 +281,7 @@ class BFCL(Benchmark):
     source = "bfcl"
     macro = True
     max_tokens_fast = 512
+    reads_tool_calls = True
 
     def load(self, root: Path, seed: int) -> list[Item]:
         setup(root)
@@ -333,6 +344,7 @@ class BFCLMultiTurn(Benchmark):
     source = "bfcl"
     macro = True
     multi_step = True
+    reads_tool_calls = True
     max_tokens_fast = 512
     MAX_STEPS = 20  # per turn, as in BFCL
     # An item takes about a dozen calls, and each resends some 12,000 tokens of

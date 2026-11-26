@@ -46,6 +46,7 @@ class Benchmark:
     multi_step = False  # an item is a conversation with tool results, not one reply
     parallel_grading = False  # the grader may run on several replies at once
     reference_size: int | None = None  # size of the effort_0 subsample, if not the survey's default
+    reads_tool_calls = False  # calls made in the model's own tool-call format count as the reply
     max_tokens_fast = 256
     max_tokens_slow = 8192
 
@@ -107,6 +108,10 @@ def parse_choice(text: str, choices: tuple[str, ...]) -> tuple[str | None, bool]
     if cleaned in lookup:
         return lookup[cleaned], True
     alternatives = "|".join(re.escape(c) for c in sorted(lookup, key=len, reverse=True))
+    # With the answer opening forced, the model sometimes writes its choice twice ("AA").
+    repeats = re.findall(alternatives, cleaned)
+    if repeats and len(set(repeats)) == 1 and "".join(repeats) == re.sub(r"[\s,.]", "", cleaned):
+        return lookup[repeats[0]], False
     phrased = re.findall(
         rf"(?:answer|response|output|option|choice|verdict)\s*(?:is|:)?\s*[*(\[\"']*({alternatives})\b", text, re.IGNORECASE
     )

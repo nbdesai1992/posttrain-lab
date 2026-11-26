@@ -60,6 +60,14 @@ def test_parse_choice_letters(text, expected, strict):
     assert parse_choice(text, ("A", "B")) == (expected, strict)
 
 
+def test_parse_choice_accepts_a_repeated_choice_but_not_a_mixed_one():
+    assert parse_choice("AA", ("A", "B")) == ("A", False)
+    assert parse_choice("yesyes", ("yes", "no")) == ("yes", False)
+    assert parse_choice("I I", tuple("ABCDEFGHIJ")) == ("I", False)
+    assert parse_choice("yesno", ("yes", "no")) == (None, False)
+    assert parse_choice("AB", ("A", "B")) == (None, False)
+
+
 def test_parse_choice_words_and_digits():
     assert parse_choice("Yes.", ("yes", "no")) == ("yes", True)
     assert parse_choice("No, the sum is wrong.", ("yes", "no")) == ("no", False)
@@ -287,6 +295,12 @@ def test_bfcl_decodes_calls_without_evaluating_them():
             bfcl.decode_calls(prose)
     # A call inside an argument is kept as text and never run.
     assert bfcl.decode_calls("f(x=open('/etc/passwd'))") == [{"f": {"x": "open('/etc/passwd')"}}]
+
+
+def test_bfcl_native_tool_calls_are_written_in_the_text_format():
+    text = bfcl.native_calls_as_text([{"name": "cd", "args": {"folder": "docs"}}, {"name": "pwd", "args": {}}, {"name": "set", "args": {"on": True, "n": 2}}])
+    assert text == "[cd(folder='docs'), pwd(), set(on=True, n=2)]"
+    assert bfcl.decode_calls(text) == [{"cd": {"folder": "docs"}}, {"pwd": {}}, {"set": {"on": True, "n": 2}}]
 
 
 def test_bfcl_writes_calls_back_out():

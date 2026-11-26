@@ -6,6 +6,7 @@ revision (see ``sources.py``) and imported from that copy. Nothing in it is chan
 
 from __future__ import annotations
 
+import random
 import sys
 import zipfile
 from pathlib import Path
@@ -62,7 +63,11 @@ class IFEval(Benchmark):
             key=int(item.id), instruction_id_list=item.answer["instruction_id_list"], prompt=prompt, kwargs=kwargs
         )
         responses = {prompt: reply.get("text", "")}
+        # A few instructions draw a threshold at random when the data gives none.
+        # Seeding per item makes the grade the same on every run.
+        random.seed(f"ifeval:{item.id}")
         strict = lib.test_instruction_following_strict(example, responses)
+        random.seed(f"ifeval:{item.id}")
         loose = lib.test_instruction_following_loose(example, responses)
         return {
             "score": float(strict.follow_all_instructions),
