@@ -94,12 +94,14 @@ class FakeBackend:
         renderer: FakeRenderer,
         *,
         answer: Callable[[str], str] | str = "yes",
+        forced_answer: Callable[[str], str] | str | None = None,
         thinking_words: int = 6,
         latency_s: float = 0.0,
         failures: Sequence[BaseException | None] = (),
     ):
         self.renderer = renderer
         self.answer = answer
+        self.forced_answer = forced_answer  # what to say when the answer opening is forced, if different
         self.thinking_words = thinking_words
         self.latency_s = latency_s
         self.failures = list(failures)  # raised one per call, in order; None means succeed
@@ -140,9 +142,10 @@ class FakeBackend:
             if failure is not None:
                 raise failure
         prompt_text = self.renderer.decode([t for t in prompt_tokens if t >= FIRST_WORD_ID])
-        answer = self.answer(prompt_text) if callable(self.answer) else self.answer
-        tokens: list[int] = []
         answer_forced = list(prompt_tokens[-2:]) == [MESSAGE_MODEL, CONTENT_TEXT]
+        source = self.forced_answer if (answer_forced and self.forced_answer is not None) else self.answer
+        answer = source(prompt_text) if callable(source) else source
+        tokens: list[int] = []
         if answer_forced:
             tokens += [*self.renderer.encode(answer), END_MESSAGE, END_SAMPLING]
         else:

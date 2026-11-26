@@ -74,7 +74,7 @@ def test_survey_dry_run_counts_units_per_setting(tmp_path, renderer, make_client
     assert run(run_step(Survey(), ctx, dry_run=True)) == 0
     assert backend.sample_calls == []
     counts = {line.split()[0]: int(line.split()[1]) for line in lines if line.split()[0] in ("parity", "pairs", "total")}
-    assert counts == {"parity": 21 + 21 + 6, "pairs": 30 + 30 + 6, "total": 114}
+    assert counts == {"parity": 21 + 21 + 21 + 6, "pairs": 30 + 30 + 30 + 6, "total": 165}
 
 
 def test_survey_scores_each_setting_and_applies_the_target_rule(tmp_path, renderer, make_client):
@@ -93,14 +93,19 @@ def test_survey_scores_each_setting_and_applies_the_target_rule(tmp_path, render
     assert parity["settings"]["effort_0"]["n"] == 6 and parity["settings"]["effort_0"]["tokens_per_answer"]["thinking"]["max"] == 0
     assert parity["slow_minus_fast"]["estimate"] == 0.0 and parity["gap_points"] == 0.0
     assert parity["classification"] == "usable as is"
+    reasoning = parity["settings"]["reasoning"]
+    assert reasoning["n"] == 21 and reasoning["token_limit"] == 64 and reasoning["tokens_per_answer"]["thinking"]["max"] == 0
+    assert parity["reasoning_minus_fast"]["estimate"] == 0.0 and summary["reference"] == "reasoning"
     assert parity["effort_0_subsample"]["items"] == 6 and parity["effort_0_subsample"]["fast_on_subsample"]["n"] == 6
     pairs = summary["benchmarks"]["pairs"]
     assert pairs["classification"] == "watch only (usable as is)"
     assert pairs["settings"]["fast"]["swap_consistency"] == 0.0 and pairs["settings"]["fast"]["picked_first_position"] == 1.0
     assert set(summary["not_run"]) == {"llm_aggrefact", "wildguardtest"}
     too_long = sum(s["context_overflow"] for s in parity["settings"].values())
-    assert too_long in (2, 3)  # the oversized prompt, in fast and slow and perhaps in the subsample
-    assert summary["usage"]["api_calls"] == len(backend.sample_calls) == 114 - too_long  # it was never sent
+    assert too_long in (3, 4)  # the oversized prompt, in the three full settings and perhaps in the subsample
+    # The oversized prompts are never sent, and the subsample reuses the reasoning setting's
+    # replies where the fake model's limit makes the two requests identical.
+    assert summary["usage"]["api_calls"] == len(backend.sample_calls) <= 165 - too_long
     # First-token probabilities are kept for one-token answers in the fast setting.
     rows = [json.loads(line) for line in (ctx.runs_dir / "results.jsonl").read_text().splitlines()]
     fast_row = next(r for r in rows if r["benchmark"] == "parity" and r["setting"] == "fast" and r["item"] == "n2")
@@ -109,9 +114,10 @@ def test_survey_scores_each_setting_and_applies_the_target_rule(tmp_path, render
     figure = json.loads((ctx.results_dir / "figure-data.json").read_text())
     assert [row["benchmark"] for row in figure["capability_map"]] == ["parity", "pairs"]
     assert figure["capability_map"][0]["fast"]["score"] == fast["score"]["estimate"]
-    assert len(figure["tokens_per_answer_against_score"]) == 6 and len(figure["not_run"]) == 2
+    assert len(figure["tokens_per_answer_against_score"]) == 8 and len(figure["not_run"]) == 2
+    assert figure["reference"] == "reasoning" and len(figure["jobs"]) == 4
     report = (ctx.results_dir / "REPORT.md").read_text()
-    for heading in ("## Capability map", "## Tokens and time per answer", "## Judging in detail", "## Throughput over the run"):
+    for heading in ("## The reference from here on", "## Capability map", "## The target rule, by job", "## Tokens and time per answer", "## Judging in detail", "## Throughput over the run"):
         assert heading in report
     assert "not run, needs a token" in report
     ids = json.loads((ctx.results_dir / "item-ids.json").read_text())
@@ -132,21 +138,16 @@ def test_a_gap_of_ten_points_makes_a_training_target(tmp_path, renderer, make_cl
     def thinks_better(prompt: str) -> str:
         return "A" if "pair" in prompt else ("yes" if int(prompt.split()[-2]) % 2 == 0 else "no")
 
-    class Lazy(FakeBackend):
-        """Right when it reasons first, yes to everything when the answer is forced."""
-
-        async def sample(self, model_id, model_path, prompt_tokens, **kwargs):
-            self.answer = (lambda prompt: "yes") if list(prompt_tokens[-2:]) == [1, 3] else thinks_better
-            return await super().sample(model_id, model_path, prompt_tokens, **kwargs)
-
-    ctx, _, _ = survey(tmp_path, renderer, make_client, thinks_better, settings=["fast", "slow"], benchmarks=["parity"])
-    ctx.client.backend = Lazy(renderer)
+    # Right when it reasons first, yes to everything when the answer is forced.
+    ctx, _, _ = survey(tmp_path, renderer, make_client, thinks_better, settings=["fast", "slow", "reasoning"], benchmarks=["parity"])
+    ctx.client.backend = FakeBackend(renderer, answer=thinks_better, forced_answer="yes")
     assert run(run_step(Survey(), ctx)) == 0
     parity = json.loads((ctx.results_dir / "summary.json").read_text())["benchmarks"]["parity"]
     assert parity["settings"]["fast"]["score"]["estimate"] == round(10 / 21, 4)
     assert parity["settings"]["slow"]["score"]["estimate"] == round(20 / 21, 4)
     assert parity["gap_points"] == round(10 / 21 * 100, 1) and parity["classification"] == "training target"
     assert parity["slow_minus_fast"]["gained"] == 10 and parity["slow_minus_fast"]["lost"] == 0 and parity["slow_minus_fast"]["mcnemar_p"] < 0.01
+    assert parity["reasoning_gap_points"] == parity["gap_points"] and "draws" not in parity["reasoning_minus_fast"]
 
 
 def test_soak_timeline_buckets_calls_by_time():
@@ -161,3 +162,31 @@ def test_soak_timeline_buckets_calls_by_time():
     assert window["service_events"] == {"paused_rate_limit": 1}
     assert 55 <= window["requests_per_min"] <= 62 and window["completion_tokens_per_min"] > 2800
     assert soak_timeline([], []) == []
+
+
+def test_the_rule_is_applied_to_jobs_as_a_mean_over_their_benchmarks():
+    from posttrain_lab.steps.survey import job_table
+
+    def gap(points):
+        return {"estimate": points / 100, "low": 0, "high": 0}
+
+    benchmarks = {
+        "judgebench": {"slow_minus_fast": gap(-4.6), "reasoning_minus_fast": gap(5.0)},
+        "rewardbench2": {"slow_minus_fast": gap(-0.1), "reasoning_minus_fast": gap(11.0)},
+        "llmbar": {"slow_minus_fast": gap(11.6), "reasoning_minus_fast": gap(8.0)},
+        "bfcl": {"slow_minus_fast": gap(4.2), "reasoning_minus_fast": gap(1.0)},
+        "bfcl_multi_turn": {"slow_minus_fast": gap(12.0), "reasoning_minus_fast": gap(3.0)},
+        "jsonschemabench": {"slow_minus_fast": gap(2.3), "reasoning_minus_fast": gap(2.0)},
+        "gsm8k": {"slow_minus_fast": gap(58.3), "reasoning_minus_fast": gap(58.0)},
+        "mbpp": {"slow_minus_fast": gap(10.1), "reasoning_minus_fast": gap(10.0)},
+    }
+    draws = {("gsm8k", "reasoning_minus_fast"): [0.56, 0.60], ("mbpp", "reasoning_minus_fast"): [0.08, 0.12]}
+    jobs = job_table(benchmarks, draws)
+    assert jobs["Judging answers"]["effort_0.9"] == {"gap_points": 2.3, "by_benchmark": {"judgebench": -4.6, "rewardbench2": -0.1, "llmbar": 11.6}, "class": "usable as is"}
+    assert jobs["Judging answers"]["reasoning"]["gap_points"] == 8.0 and jobs["Judging answers"]["reasoning"]["class"] == "in between"
+    assert jobs["Judging answers"]["class_changed"] is True
+    assert jobs["Calling tools"]["effort_0.9"]["gap_points"] == 8.1 and jobs["Calling tools"]["reasoning"]["class"] == "usable as is"
+    assert jobs["Filling a schema"]["class_changed"] is False
+    reasoning = jobs["Reasoning without the wait"]["reasoning"]
+    assert reasoning["gap_points"] == 34.0 and reasoning["class"] == "training target" and reasoning["selected_target"] is True
+    assert 32.0 <= reasoning["low"] <= 32.2 and 35.8 <= reasoning["high"] <= 36.0

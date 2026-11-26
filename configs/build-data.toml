@@ -1,0 +1,20 @@
+# Candidate training problems for the reasoning target. Each list gives how many
+# problems to generate at levels 1 to 5 of a family. No model is called.
+
+seed = 20261126
+survey_seed = 20261126   # the seed the survey sampled its benchmarks with
+ngram = 5                # character n-grams for the similarity check
+threshold = 0.5          # drop a candidate at or above this Jaccard similarity to any benchmark question
+
+[counts]
+arithmetic = [24, 24, 24, 24, 24]
+stock_story = [24, 24, 24, 24, 24]
+rates = [24, 24, 24, 24, 24]
+sequence = [24, 24, 24, 24, 24]
+number_theory = [24, 24, 24, 24, 24]
+table = [24, 24, 24, 24, 24]
+code_trace = [24, 24, 24, 24, 24]
+calendar = [24, 24, 24, 24, 24]
+counting = [24, 24, 24, 24, 24]
+equations = [24, 24, 24, 24, 24]
+ordering = [24, 24, 24, 24, 24]

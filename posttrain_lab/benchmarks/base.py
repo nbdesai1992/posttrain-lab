@@ -25,6 +25,15 @@ class Item:
     group: str = ""  # sub-category, for breakdowns
     cluster: str = ""  # items that must be resampled together (the two orders of a pair)
     extra: dict = field(default_factory=dict)
+    source_text: str = ""  # the benchmark's own question, without our wrapper or any responses
+
+    def leak_text(self) -> str:
+        """The text a training item must not resemble."""
+        if self.source_text:
+            return self.source_text
+        if self.messages:
+            return "\n".join(m["content"] for m in self.messages if m["role"] == "user")
+        return "\n".join(m["content"] for turn in self.extra.get("question", []) for m in turn if m["role"] == "user")
 
     def __post_init__(self) -> None:
         self.cluster = self.cluster or self.id

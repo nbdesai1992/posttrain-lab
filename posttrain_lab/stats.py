@@ -64,6 +64,7 @@ def bootstrap(
     macro: bool = False,
     resamples: int = 2000,
     seed: int = 0,
+    keep_draws: bool = False,
 ) -> dict:
     """A point estimate with a 95% percentile bootstrap interval.
 
@@ -98,12 +99,15 @@ def bootstrap(
             for _ in names:
                 indexes.extend(members[names[rng.randrange(len(names))]])
         draws.append(statistic(indexes))
-    return {
+    result = {
         "n": n,
         "estimate": round(statistic(list(range(n))), 4),
         "low": round(percentile(draws, 2.5), 4),
         "high": round(percentile(draws, 97.5), 4),
     }
+    if keep_draws:
+        result["draws"] = draws
+    return result
 
 
 def paired_difference(
@@ -115,13 +119,16 @@ def paired_difference(
     macro: bool = False,
     resamples: int = 2000,
     seed: int = 0,
+    keep_draws: bool = False,
 ) -> dict:
     """``second`` minus ``first`` on the same items, with a 95% bootstrap interval
     and an exact McNemar test on the items where the two disagree."""
     from math import comb
 
     differences = [b - a for a, b in zip(first, second)]
-    result = bootstrap(differences, clusters=clusters, groups=groups, macro=macro, resamples=resamples, seed=seed)
+    result = bootstrap(
+        differences, clusters=clusters, groups=groups, macro=macro, resamples=resamples, seed=seed, keep_draws=keep_draws
+    )
     gained = sum(1 for a, b in zip(first, second) if b > a)
     lost = sum(1 for a, b in zip(first, second) if a > b)
     discordant = gained + lost

@@ -1,0 +1,28 @@
+# Filter: every candidate from build-data in the fast setting and in the reasoning
+# setting, graded by program and sorted into cells. The end of the run builds the
+# training sets and writes them to results/data/.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 20261126
+settings = ["fast", "reasoning"]
+
+sizes = [250, 500, 1000, 2000, 4000]   # the size sweep for the middle band and the random draw
+main_size = 2000                        # the size of the main comparison
+dev_per_cell = 100                      # held out of every training set, for sanity checks only
+
+progress_seconds = 60
+
+[client]
+max_concurrency = 32
+max_attempts = 4
+call_timeout_s = 1800
+
+[estimates]
+chars_per_token = 3.5
+completion_tokens = 300
+
+[estimates.fast]
+synthetic = 8
+
+[estimates.reasoning]
+synthetic = 500

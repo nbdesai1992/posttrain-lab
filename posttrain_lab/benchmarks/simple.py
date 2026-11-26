@@ -86,6 +86,7 @@ class JudgeBench(Benchmark):
                         answer=answer,
                         group=self.family(row["source"]),
                         cluster=row["pair_id"],
+                        source_text=row["question"],
                     )
                 )
         return items
@@ -119,6 +120,7 @@ class JudgeBenchPointwise(JudgeBench):
                         answer="yes" if is_correct else "no",
                         group=self.family(row["source"]),
                         cluster=row["pair_id"],
+                        source_text=row["question"],
                     )
                 )
         return items
@@ -172,6 +174,7 @@ class LLMBar(Benchmark):
                             answer=answer,
                             group=subset,
                             cluster=f"{subset}-{index}",
+                            source_text=row["input"],
                         )
                     )
         return items
@@ -217,6 +220,7 @@ class RewardBench2(Benchmark):
                     messages=user(self.PROMPT.format(prompt=row["prompt"], responses=responses)),
                     answer=answer,
                     group=row["subset"],
+                    source_text=row["prompt"],
                 )
             )
         return items
@@ -252,7 +256,7 @@ class MMLUPro(Benchmark):
             prompt = f"{row['question']}\n\n{options}\n\nAnswer with the letter of the correct option and nothing else."
             items.append(
                 Item(id=str(row["question_id"]), messages=user(prompt), answer=row["answer"], group=row["category"],
-                     extra={"options": len(row["options"])})
+                     extra={"options": len(row["options"])}, source_text=row["question"])
             )
         return items
 
@@ -309,6 +313,7 @@ class GSM8K(Benchmark):
                 id=f"gsm8k-{index}",
                 messages=user(self.PROMPT.format(question=row["question"])),
                 answer=row["answer"].split("####")[-1].strip().replace(",", ""),
+                source_text=row["question"],
             )
             for index, row in enumerate(rows)
         ]

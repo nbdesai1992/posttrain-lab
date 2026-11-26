@@ -32,6 +32,7 @@ class MBPP(Benchmark):
                     id=f"mbpp-{row['task_id']}",
                     messages=user(self.PROMPT.format(task=row["prompt"], tests="\n".join(tests))),
                     answer={"tests": tests, "imports": list(row["test_imports"] or [])},
+                    source_text=row["prompt"],
                 )
             )
         return items

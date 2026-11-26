@@ -35,14 +35,32 @@ from .base import Step, StepContext, Unit
 SETTINGS = {
     # name: (effort, force the reply to open as an answer)
     "fast": (FAST_EFFORT, True),
+    "reasoning": (FAST_EFFORT, False),
     "slow": (DEFAULT_EFFORT, False),
     "effort_0": (FAST_EFFORT, False),
 }
+# The reasoning setting is the study's reference and teacher: free-running effort 0.0
+# with the same 8,192-token limit as every other free-running setting. "slow" (effort
+# 0.9) stays in the record as measured and is not rerun. "effort_0" was the first look
+# at effort 0.0 on a subsample. Its requests are identical to the reasoning setting's,
+# so it is no longer configured and its replies are reused from the cache.
+SUBSAMPLE_ONLY = {"effort_0"}
+SETTING_LABELS = {"fast": "fast", "reasoning": "reasoning", "slow": "effort 0.9", "effort_0": "effort 0.0, long limit"}
 SETTING_NOTES = {
-    "fast": "forced direct answer at effort 0.0 (no reasoning block)",
-    "slow": "effort 0.9, free-running",
-    "effort_0": "effort 0.0, free-running (the shipped no-effort setting), on a fixed subsample",
+    "fast": "a forced direct answer at effort 0.0 (no reasoning block)",
+    "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference and teacher from here on",
+    "slow": "effort 0.9, free-running, with an 8,192-token limit: measured once and not used as the reference",
+    "effort_0": "the reasoning setting on a fixed subsample: the first look at it, now part of the full pass",
 }
+# The benchmarks that stand for each job, fixed before the reference pass. A job's gap
+# is the unweighted mean over its benchmarks of reference minus fast, in points.
+JOB_BENCHMARKS = {
+    "Judging answers": ["judgebench", "rewardbench2", "llmbar"],
+    "Calling tools": ["bfcl", "bfcl_multi_turn"],
+    "Filling a schema": ["jsonschemabench"],
+    "Reasoning without the wait": ["gsm8k", "mbpp"],
+}
+MAX_TARGETS = 3
 GRADER_VERSION = 4  # bump to regrade everything after a grader change
 CONTEXT_WINDOW = 65536
 TARGET_GAP, USABLE_GAP = 10.0, 3.0  # points, from the study design
@@ -54,6 +72,42 @@ def reference_subsample(items: list[Item], size: int, seed: int) -> set[str]:
     per_cluster = len(items) / len(clusters)
     chosen = set(fixed_sample(clusters, max(1, round(size / per_cluster)), seed))
     return {item.id for item in items if item.cluster in chosen}
+
+
+def token_limit(benchmark: Benchmark, setting: str) -> int:
+    return benchmark.max_tokens_fast if setting == "fast" else benchmark.max_tokens_slow
+
+
+def band(gap_points: float | None) -> str:
+    if gap_points is None:
+        return "not measured"
+    return "training target" if gap_points >= TARGET_GAP else ("usable as is" if gap_points <= USABLE_GAP else "in between")
+
+
+def job_table(benchmarks: dict, draws: dict) -> dict:
+    """The target rule, applied to jobs. ``draws`` holds bootstrap draws of each
+    benchmark's paired gap, which are averaged to put an interval on a job's gap."""
+    jobs = {}
+    for job, names in JOB_BENCHMARKS.items():
+        row = {"benchmarks": [n for n in names if n in benchmarks]}
+        for reference, key in (("reasoning", "reasoning_minus_fast"), ("effort_0.9", "slow_minus_fast")):
+            gaps = [benchmarks[n][key]["estimate"] * 100 for n in row["benchmarks"] if benchmarks[n].get(key) and benchmarks[n][key]["estimate"] is not None]
+            if len(gaps) != len(names):
+                row[reference] = {"gap_points": None, "class": "not measured"}
+                continue
+            entry = {"gap_points": round(sum(gaps) / len(gaps), 1), "by_benchmark": dict(zip(row["benchmarks"], [round(g, 1) for g in gaps]))}
+            series = [draws.get((n, key)) for n in row["benchmarks"]]
+            if all(series):
+                means = [sum(values) / len(values) * 100 for values in zip(*series)]
+                entry["low"], entry["high"] = round(percentile(means, 2.5), 1), round(percentile(means, 97.5), 1)
+            entry["class"] = band(entry["gap_points"])
+            row[reference] = entry
+        row["class_changed"] = row["reasoning"]["class"] != row["effort_0.9"]["class"]
+        jobs[job] = row
+    targets = sorted((j for j, r in jobs.items() if r["reasoning"]["class"] == "training target"), key=lambda j: -jobs[j]["reasoning"]["gap_points"])
+    for rank, job in enumerate(targets):
+        jobs[job]["reasoning"]["selected_target"] = rank < MAX_TARGETS
+    return jobs
 
 
 def classify(benchmark: Benchmark, gap_points: float | None) -> str:
@@ -117,14 +171,14 @@ class Survey(Step):
             benchmark: Benchmark = entry["benchmark"]
             for setting in ctx.config.get("settings", list(SETTINGS)):
                 for item in entry["items"].values():
-                    if setting == "effort_0" and item.id not in entry["reference"]:
+                    if setting in SUBSAMPLE_ONLY and item.id not in entry["reference"]:
                         continue
                     calls = 1
                     chars = sum(len(m["content"]) for m in item.messages)
                     if benchmark.multi_step:
                         calls = int(len(item.extra["question"]) * estimates.get("steps_per_turn", 2.5))
                         chars = calls * (len(json.dumps(item.extra["function"])) + 2000)
-                    limit = benchmark.max_tokens_fast if setting == "fast" else benchmark.max_tokens_slow
+                    limit = token_limit(benchmark, setting)
                     expected = min(limit, estimates.get(setting, {}).get(name, estimates.get("completion_tokens", 300)))
                     units.append(
                         Unit(
@@ -150,7 +204,7 @@ class Survey(Step):
         effort, forced = SETTINGS[setting]
         special = ctx.renderer.special
         opening = [special.message_model, special.content_text] if forced else []
-        max_tokens = benchmark.max_tokens_fast if setting == "fast" else benchmark.max_tokens_slow
+        max_tokens = token_limit(benchmark, setting)
         totals = Counter()
         last: dict = {}
 
@@ -335,7 +389,7 @@ def _setting_summary(benchmark: Benchmark, items: list[Item], rows: list[dict], 
     return out
 
 
-def _paired(benchmark: Benchmark, items: dict[str, Item], first: dict[str, dict], second: dict[str, dict], seed: int) -> dict | None:
+def _paired(benchmark: Benchmark, items: dict[str, Item], first: dict[str, dict], second: dict[str, dict], seed: int, keep_draws: bool = False) -> dict | None:
     common = [item_id for item_id in first if item_id in second]
     if not common:
         return None
@@ -346,6 +400,7 @@ def _paired(benchmark: Benchmark, items: dict[str, Item], first: dict[str, dict]
         groups=[items[i].group for i in common],
         macro=benchmark.macro,
         seed=seed,
+        keep_draws=keep_draws,
     )
 
 
@@ -394,6 +449,7 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
     seed = config.get("seed", 0)
     licences = sources.licences()
     benchmarks = {}
+    draws: dict = {}
     for name, entry in loaded.items():
         benchmark: Benchmark = entry["benchmark"]
         items: dict[str, Item] = entry["items"]
@@ -409,9 +465,15 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
             settings[setting] = _setting_summary(
                 benchmark, [items[i] for i in ids], [row_by[setting][i] for i in ids], [graded[i] for i in ids], seed
             )
-            settings[setting]["complete"] = len(ids) == (len(entry["reference"]) if setting == "effort_0" else len(items))
+            settings[setting]["complete"] = len(ids) == (len(entry["reference"]) if setting in SUBSAMPLE_ONLY else len(items))
+            settings[setting]["token_limit"] = token_limit(benchmark, setting)
         fast, slow, ref = per_setting.get("fast", {}), per_setting.get("slow", {}), per_setting.get("effort_0", {})
-        gap = _paired(benchmark, items, fast, slow, seed)
+        reasoning = per_setting.get("reasoning", {})
+        gap = _paired(benchmark, items, fast, slow, seed, keep_draws=True)
+        reasoning_gap = _paired(benchmark, items, fast, reasoning, seed, keep_draws=True)
+        for key, paired in (("slow_minus_fast", gap), ("reasoning_minus_fast", reasoning_gap)):
+            if paired and "draws" in paired:
+                draws[(name, key)] = paired.pop("draws")
         gap_points = round(gap["estimate"] * 100, 1) if gap and gap["estimate"] is not None else None
         on_subsample = {}
         for setting, graded in (("fast", fast), ("slow", slow)):
@@ -434,6 +496,9 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
             "slow_minus_fast": gap,
             "gap_points": gap_points,
             "classification": classify(benchmark, gap_points),
+            "reasoning_minus_fast": reasoning_gap,
+            "reasoning_gap_points": _gap_points(reasoning_gap),
+            "reasoning_minus_slow": _paired(benchmark, items, slow, reasoning, seed),
             "effort_0_subsample": {
                 "items": len(entry["reference"]),
                 "classification_if_effort_0_were_the_reference": classify(benchmark, _gap_points(
@@ -454,7 +519,12 @@ def build_summary(config, loaded, rows, grades, calls, events, account, root) ->
         "versions": {p: _version(p) for p in ("tinker", "tml-renderers", "tinker-cookbook", "jsonschema", "nltk")},
         "seed": seed,
         "settings": SETTING_NOTES,
-        "target_rule": f"training target if slow minus fast is at least {TARGET_GAP:g} points, usable as is if it is at most {USABLE_GAP:g}",
+        "reference": "reasoning",
+        "target_rule": (
+            f"a job's gap is the unweighted mean, over its benchmarks, of reference minus fast in points; it is a training target "
+            f"at {TARGET_GAP:g} or more and usable as is at {USABLE_GAP:g} or less, with at most {MAX_TARGETS} targets"
+        ),
+        "jobs": job_table(benchmarks, draws),
         "benchmarks": benchmarks,
         "not_run": NOT_RUN,
         "pins": {"sources": len(sources.load_pins()), "bfcl_revision": sources.BFCL_REV, "ifeval_checker_revision": sources.IFEVAL_REV},
@@ -479,7 +549,7 @@ def figure_data(summary: dict) -> dict:
     capability, cost = [], []
     for name, b in summary["benchmarks"].items():
         row = {"benchmark": name, "title": b["title"], "job": b["job"], "role": b["role"], "chance": b["chance"],
-               "gap_points": b["gap_points"], "classification": b["classification"]}
+               "reasoning_minus_fast_points": b["reasoning_gap_points"], "effort_0.9_minus_fast_points": b["gap_points"]}
         for setting in SETTINGS:
             s = b["settings"].get(setting)
             if not s:
@@ -487,7 +557,8 @@ def figure_data(summary: dict) -> dict:
             row[setting] = {"score": s["score"]["estimate"], "low": s["score"]["low"], "high": s["score"]["high"], "n": s["n"]}
             cost.append(
                 {
-                    "benchmark": name, "title": b["title"], "setting": setting, "score": s["score"]["estimate"],
+                    "benchmark": name, "title": b["title"], "setting": setting, "label": SETTING_LABELS[setting],
+                    "score": s["score"]["estimate"], "share_cut_off": round(s["cut_off_by_max_tokens"] / max(s["n"], 1), 4),
                     "completion_tokens_per_answer": s["tokens_per_answer"]["completion"].get("mean"),
                     "thinking_tokens_per_answer": s["tokens_per_answer"]["thinking"].get("mean"),
                     "prompt_tokens_per_answer": s["tokens_per_answer"]["prompt"],
@@ -498,6 +569,8 @@ def figure_data(summary: dict) -> dict:
     return {
         "generated_at": summary["generated_at"],
         "settings": summary["settings"],
+        "reference": summary["reference"],
+        "jobs": [{"job": job, **{k: v for k, v in row.items()}} for job, row in summary["jobs"].items()],
         "capability_map": capability,
         "tokens_per_answer_against_score": cost,
         "not_run": [{"benchmark": k, **v} for k, v in summary["not_run"].items()],
@@ -534,79 +607,125 @@ def render_report(summary: dict) -> str:
     add("")
     add("The settings:")
     add("")
+    ran = {setting for b in summary["benchmarks"].values() for setting in b["settings"]}
     for name, note in summary["settings"].items():
-        add(f"- `{name}` is {note}.")
-
-    add("")
-    add("## Capability map")
-    add("")
-    add("| benchmark | job | items | fast | slow | slow minus fast (points) | by the target rule |")
-    add("|---|---|---|---|---|---|---|")
-    for name, b in summary["benchmarks"].items():
-        gap = b["slow_minus_fast"]
-        gap_text = "" if not gap or gap["estimate"] is None else f"{gap['estimate'] * 100:+.1f} ({gap['low'] * 100:+.1f} to {gap['high'] * 100:+.1f})"
-        add(
-            f"| {b['title']} | {b['job']} | {b['items']:,} | {_score(b['settings'].get('fast'))} | "
-            f"{_score(b['settings'].get('slow'))} | {gap_text} | {b['classification']} |"
-        )
-    for name, b in summary["not_run"].items():
-        add(f"| {b['title']} | {b['job']} | | | | | {b['reason']} |")
-    add("")
-    add(
-        f"The rule, fixed before the run: {summary['target_rule']}. Jobs marked watch only are never trained. "
-        "A score that is a mean over groups (RewardBench 2 subsets, BFCL categories) weights every group equally. "
-        "Published leaderboard numbers are left out of this report, so the rule is applied to the gap between the two settings only."
-    )
-    incomplete = [f"{b['title']} ({s})" for b in summary["benchmarks"].values() for s, d in b["settings"].items() if not d.get("complete")]
-    if incomplete:
-        add("")
-        add("Not every planned item has a reply yet in these cells, so their numbers are provisional: " + ", ".join(incomplete) + ".")
-
-    add("")
-    add("## The shipped no-effort setting, on a subsample")
-    add("")
-    add(
-        "Free-running effort 0.0 still reasons before it answers. It ran on a fixed subsample of each benchmark, "
-        "shown next to the other two settings on the same items. The last column applies the same rule with effort_0 in place of slow."
-    )
-    add("")
-    add("| benchmark | items | fast | effort_0 | slow | effort_0 minus fast | slow minus effort_0 | thinking tokens at effort_0 | rule against effort_0 |")
-    add("|---|---|---|---|---|---|---|---|---|")
+        if name in ran:
+            add(f"- `{SETTING_LABELS[name]}` is {note}.")
 
     def signed(paired: dict | None) -> str:
         if not paired or paired["estimate"] is None:
             return ""
         return f"{paired['estimate'] * 100:+.1f} ({paired['low'] * 100:+.1f} to {paired['high'] * 100:+.1f})"
 
+    add("")
+    add("## The reference from here on")
+    add("")
+    add(
+        "The study's reference line, and the teacher for its training data, is the reasoning setting: free-running effort 0.0 "
+        "with the 8,192-token limit. Effort 0.9 was the first choice and was measured in full with the same limit. It is set aside "
+        "because on the judging and knowledge benchmarks a fifth to a third of its replies ran to the limit without giving an answer, "
+        "while effort 0.0 reasons for about half as long, is cut off less often and scores as well or better. "
+        "Effort 0.9 stays in every table as measured and is not run again."
+    )
+
+    add("")
+    add("## Capability map")
+    add("")
+    add("| benchmark | job | items | fast | effort 0.9 | reasoning | reasoning minus fast (points) | reasoning replies at the limit | reasoning tokens per answer |")
+    add("|---|---|---|---|---|---|---|---|---|")
     for name, b in summary["benchmarks"].items():
-        e = b["settings"].get("effort_0")
-        sub = b["effort_0_subsample"]
-        if not e:
-            continue
+        r = b["settings"].get("reasoning")
+        capped = "" if not r else f"{r['cut_off_by_max_tokens'] / max(r['n'], 1):.1%}"
+        thinking = "" if not r else f"{r['tokens_per_answer']['thinking'].get('mean', 0):,.0f}"
         add(
-            f"| {b['title']} | {e['n']} | {_score({'score': sub['fast_on_subsample']}) if sub['fast_on_subsample'] else ''} | {_score(e)} | "
-            f"{_score({'score': sub['slow_on_subsample']}) if sub['slow_on_subsample'] else ''} | {signed(sub['effort_0_minus_fast'])} | "
-            f"{signed(sub['slow_minus_effort_0'])} | {e['tokens_per_answer']['thinking'].get('mean', 0):,.0f} | "
-            f"{sub['classification_if_effort_0_were_the_reference']} |"
+            f"| {b['title']} | {b['job']} | {b['items']:,} | {_score(b['settings'].get('fast'))} | {_score(b['settings'].get('slow'))} | "
+            f"{_score(r)} | {signed(b.get('reasoning_minus_fast'))} | {capped} | {thinking} |"
         )
+    for name, b in summary["not_run"].items():
+        add(f"| {b['title']} | {b['job']} | | | | | {b['reason']} | | |")
+    add("")
+    add(
+        "Differences are paired on the same items. A score that is a mean over groups (RewardBench 2 subsets, BFCL categories) "
+        "weights every group equally. Published leaderboard numbers are left out of this report."
+    )
+    incomplete = [f"{b['title']} ({SETTING_LABELS[s]})" for b in summary["benchmarks"].values() for s, d in b["settings"].items() if not d.get("complete")]
+    if incomplete:
+        add("")
+        add("Not every planned item has a reply yet in these cells, so their numbers are provisional: " + ", ".join(incomplete) + ".")
+
+    add("")
+    add("## The target rule, by job")
+    add("")
+    add(f"The rule: {summary['target_rule']}. The benchmarks that stand for each job were fixed before the reference pass.")
+    add("")
+    add("| job | benchmarks | gap against effort 0.9 | class | gap against the reasoning setting | class | class changed |")
+    add("|---|---|---|---|---|---|---|")
+    titles = {name: b["title"] for name, b in summary["benchmarks"].items()}
+    for job, row in summary["jobs"].items():
+        old_ref, new_ref = row["effort_0.9"], row["reasoning"]
+        interval = f" ({new_ref['low']:+.1f} to {new_ref['high']:+.1f})" if "low" in new_ref else ""
+        old_interval = f" ({old_ref['low']:+.1f} to {old_ref['high']:+.1f})" if "low" in old_ref else ""
+        gap_new = "" if new_ref["gap_points"] is None else f"{new_ref['gap_points']:+.1f}{interval}"
+        gap_old = "" if old_ref["gap_points"] is None else f"{old_ref['gap_points']:+.1f}{old_interval}"
+        add(
+            f"| {job} | {', '.join(titles[n] for n in row['benchmarks'])} | {gap_old} | {old_ref['class']} | {gap_new} | "
+            f"{new_ref['class']} | {'yes' if row['class_changed'] else 'no'} |"
+        )
+    listed = {n for row in summary["jobs"].values() for n in row["benchmarks"]}
+    others = [(n, b) for n, b in summary["benchmarks"].items() if n not in listed]
+    if others:
+        add("")
+        add("Benchmarks outside the rule, with their own gaps for the record:")
+        add("")
+        add("| benchmark | why it is outside | effort 0.9 minus fast | reasoning minus fast |")
+        add("|---|---|---|---|")
+        for name, b in others:
+            why = "watch only, never trained" if b["role"] == "watch" else "not in the list fixed beforehand, so anything built on it is exploratory"
+            add(f"| {b['title']} | {why} | {signed(b.get('slow_minus_fast'))} | {signed(b.get('reasoning_minus_fast'))} |")
+    for name, b in summary["not_run"].items():
+        add("")
+        add(f"{b['job']} has no measurement: {b['title']} was {b['reason']}.")
+
+    if any("effort_0" in b["settings"] for b in summary["benchmarks"].values()):
+      add("")
+      add("## The first look at effort 0.0, on a subsample")
+      add("")
+      add(
+          "Before the reference pass, free-running effort 0.0 ran with the 8,192-token limit on a fixed subsample of each benchmark. "
+          "These rows are that first look, next to fast and effort 0.9 on the same items. They are kept as measured."
+      )
+      add("")
+      add("| benchmark | items | fast | effort 0.0, long limit | effort 0.9 | effort 0.0 minus fast | effort 0.9 minus effort 0.0 | thinking tokens |")
+      add("|---|---|---|---|---|---|---|---|")
+
+      for name, b in summary["benchmarks"].items():
+          e = b["settings"].get("effort_0")
+          sub = b["effort_0_subsample"]
+          if not e:
+              continue
+          add(
+              f"| {b['title']} | {e['n']} | {_score({'score': sub['fast_on_subsample']}) if sub['fast_on_subsample'] else ''} | {_score(e)} | "
+              f"{_score({'score': sub['slow_on_subsample']}) if sub['slow_on_subsample'] else ''} | {signed(sub['effort_0_minus_fast'])} | "
+              f"{signed(sub['slow_minus_effort_0'])} | {e['tokens_per_answer']['thinking'].get('mean', 0):,.0f} |"
+          )
 
     add("")
     add("## Replies that ran out of budget")
     add("")
     add(
-        "A reply is cut off when it reaches the token limit (8,192 tokens for slow and effort_0) before the model ends its turn. "
+        "A reply is cut off when it reaches the 8,192-token limit before the model ends its turn. "
         "A cut-off reply has no answer and scores zero. The table separates that from a wrong answer."
     )
     add("")
     add("| benchmark | setting | replies | cut off | share cut off | score | score among replies that finished |")
     add("|---|---|---|---|---|---|---|")
     for name, b in summary["benchmarks"].items():
-        for setting in ("slow", "effort_0"):
+        for setting in ("reasoning", "slow", "effort_0"):
             s = b["settings"].get(setting)
             if not s:
                 continue
             add(
-                f"| {b['title']} | {setting} | {s['n']:,} | {s['cut_off_by_max_tokens']} | {s['cut_off_by_max_tokens'] / max(s['n'], 1):.0%} | "
+                f"| {b['title']} | {SETTING_LABELS[setting]} | {s['n']:,} | {s['cut_off_by_max_tokens']} | {s['cut_off_by_max_tokens'] / max(s['n'], 1):.0%} | "
                 f"{_pct(s['score']['estimate'])} | {_pct(s.get('score_when_finished'))} |"
             )
     add("")
@@ -619,7 +738,7 @@ def render_report(summary: dict) -> str:
             t = s["tokens_per_answer"]
             c, th, lat = t["completion"], t["thinking"], s["latency_s"]
             add(
-                f"| {b['title']} | {setting} | {t['prompt']:,.0f} | {c.get('mean', 0):,.0f} | {c.get('p50', 0):,.0f} | {c.get('p90', 0):,.0f} | "
+                f"| {b['title']} | {SETTING_LABELS[setting]} | {t['prompt']:,.0f} | {c.get('mean', 0):,.0f} | {c.get('p50', 0):,.0f} | {c.get('p90', 0):,.0f} | "
                 f"{c.get('max', 0):,.0f} | {th.get('mean', 0):,.0f} | {th.get('p90', 0):,.0f} | {lat.get('p50', '')} | {lat.get('p95', '')} | "
                 f"{s['cut_off_by_max_tokens']} | {s['context_overflow']} |"
             )
@@ -636,7 +755,7 @@ def render_report(summary: dict) -> str:
         for name, b in judging:
             for setting, s in b["settings"].items():
                 add(
-                    f"| {b['title']} | {setting} | {_pct(s['score']['estimate'])} | {_pct(s.get('false_accept_rate'))} | {_pct(s.get('false_reject_rate'))} | "
+                    f"| {b['title']} | {SETTING_LABELS[setting]} | {_pct(s['score']['estimate'])} | {_pct(s.get('false_accept_rate'))} | {_pct(s.get('false_reject_rate'))} | "
                     f"{_pct(s.get('swap_consistency'))} | {_pct(s.get('both_orders_correct'))} | {_pct(s.get('picked_first_position'))} | {s.get('unparsed', '')} |"
                 )
         add("")
@@ -652,14 +771,18 @@ def render_report(summary: dict) -> str:
         add("## Scores by group")
         for name, b in grouped:
             fast, slow = b["settings"].get("fast", {}).get("by_group", {}), b["settings"].get("slow", {}).get("by_group", {})
+            reasoning = b["settings"].get("reasoning", {}).get("by_group", {})
             add("")
             add(f"{b['title']}:")
             add("")
-            add("| group | items | fast | slow |")
-            add("|---|---|---|---|")
+            add("| group | items | fast | effort 0.9 | reasoning |")
+            add("|---|---|---|---|---|")
             for group in sorted(set(fast) | set(slow)):
                 n = (fast.get(group) or slow.get(group))["n"]
-                add(f"| {group} | {n} | {_pct(fast.get(group, {}).get('score'))} | {_pct(slow.get(group, {}).get('score'))} |")
+                add(
+                    f"| {group} | {n} | {_pct(fast.get(group, {}).get('score'))} | {_pct(slow.get(group, {}).get('score'))} | "
+                    f"{_pct(reasoning.get(group, {}).get('score'))} |"
+                )
 
     add("")
     add("## Throughput over the run")

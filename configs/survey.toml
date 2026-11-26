@@ -5,9 +5,10 @@
 model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
 seed = 20261126
 
-# Settings: "fast" is a forced direct answer at effort 0.0, "slow" is effort 0.9,
-# and "effort_0" is free-running effort 0.0 on a fixed subsample of each benchmark.
-settings = ["fast", "slow", "effort_0"]
+# Settings. "fast" is a forced direct answer at effort 0.0. "reasoning" is free-running
+# effort 0.0, the study's reference. "slow" is effort 0.9, measured once and kept in
+# the record. Free-running replies are limited to 8,192 tokens.
+settings = ["fast", "reasoning", "slow"]
 reference_sample = 200
 
 # The multi-turn benchmark comes last because it is by far the heaviest on prompt tokens.
@@ -69,3 +70,16 @@ gsm8k = 230
 mbpp = 2000
 ifeval = 1440
 mmlu_pro = 800
+
+[estimates.reasoning]
+judgebench = 2000
+judgebench_pointwise = 1900
+rewardbench2 = 1000
+llmbar = 270
+bfcl = 210
+bfcl_multi_turn = 180
+jsonschemabench = 420
+gsm8k = 280
+mbpp = 900
+ifeval = 1300
+mmlu_pro = 1100
