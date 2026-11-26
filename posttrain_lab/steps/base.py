@@ -67,6 +67,7 @@ class Step:
     default_config: str | None = None  # path relative to the repository root
     implemented: bool = True
     parallel_units: bool = False  # run pending units concurrently (the client bounds the calls)
+    unit_workers: int | None = None  # how many units run at once; defaults to the client's concurrency
 
     def plan(self, ctx: StepContext) -> list[Unit]:
         raise NotImplementedError
@@ -108,13 +109,13 @@ def format_plan(step: Step, units: list[Unit], pending: list[Unit]) -> str:
     total = {k: sum(row[k] for row in kinds.values()) for k in ("units", "pending", "calls", "prompt", "completion", "max", "training")}
     header = (
         f"{'kind':<22}{'units':>6}{'pending':>8}{'calls':>7}"
-        f"{'prompt tok':>12}{'completion tok':>16}{'(max)':>10}{'training tok':>14}"
+        f"{'prompt tok':>13}{'completion tok':>16}{'(max)':>14}{'training tok':>14}"
     )
     lines = [f"{step.name}: plan for the pending work (token counts are estimates)", header, "-" * len(header)]
     for kind, row in [*kinds.items(), ("total", total)]:
         lines.append(
             f"{kind:<22}{row['units']:>6}{row['pending']:>8}{row['calls']:>7}"
-            f"{row['prompt']:>12,}{row['completion']:>16,}{row['max']:>10,}{row['training']:>14,}"
+            f"{row['prompt']:>13,}{row['completion']:>16,}{row['max']:>14,}{row['training']:>14,}"
         )
     return "\n".join(lines)
 
@@ -154,12 +155,28 @@ async def run_step(
         row = await step.run_unit(unit, ctx)
         ctx.store.put(unit.key(ctx.step), {"kind": unit.kind, "params": unit.params, **row})
 
+    failures: list[BaseException] = []
     try:
         if step.parallel_units:
-            results = await asyncio.gather(*(run_one(u) for u in pending), return_exceptions=True)
-            errors = [r for r in results if isinstance(r, BaseException)]
-            if errors:
-                raise errors[0]
+            # A fixed number of workers, so that only the units in progress hold their
+            # prompts in memory. Each worker makes one call at a time.
+            queue = list(reversed(pending))
+
+            async def worker() -> None:
+                while queue and not any(isinstance(f, AccountBlockedError) for f in failures):
+                    unit = queue.pop()
+                    try:
+                        await run_one(unit)
+                    except AccountBlockedError as exc:
+                        failures.append(exc)
+                    except Exception as exc:  # the unit stays pending for the next run
+                        failures.append(exc)
+
+            workers = step.unit_workers or ctx.client.max_concurrency
+            await asyncio.gather(*(worker() for _ in range(min(workers, max(len(pending), 1)))))
+            for failure in failures:
+                if isinstance(failure, AccountBlockedError):
+                    raise failure
         else:
             for index, unit in enumerate(pending, start=1):
                 ctx.out(f"[{index}/{len(pending)}] {unit.kind} {unit.label}".rstrip())
@@ -168,6 +185,12 @@ async def run_step(
         ctx.out(f"Stopped on an account problem: {exc}")
         ctx.out("Finished units are saved. Once the account is sorted out, rerun the same command.")
         return 3
+    if failures:
+        kinds: dict[str, int] = {}
+        for failure in failures:
+            kinds[type(failure).__name__] = kinds.get(type(failure).__name__, 0) + 1
+        ctx.out(f"{len(failures)} units failed and stay pending for the next run: {kinds}")
+        ctx.out(f"first failure: {type(failures[0]).__name__}: {str(failures[0])[:300]}")
 
     rows = [ctx.store.get(key) for key in keys]
     await step.finish(ctx, [row for row in rows if row is not None])
@@ -178,4 +201,4 @@ async def run_step(
         f"{totals['prompt_tokens']:,} prompt tokens, {totals['completion_tokens']:,} completion tokens, "
         f"{totals['training_tokens']:,} training tokens."
     )
-    return 0
+    return 1 if failures else 0

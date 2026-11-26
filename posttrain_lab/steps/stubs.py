@@ -5,11 +5,6 @@ from __future__ import annotations
 from .base import NotImplementedStep
 
 
-class Survey(NotImplementedStep):
-    name = "survey"
-    summary = "Score the base model on the public benchmarks at effort 0.0 and 0.9"
-
-
 class BuildData(NotImplementedStep):
     name = "build-data"
     summary = "Generate synthetic training items whose labels come from programs"

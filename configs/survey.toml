@@ -1,0 +1,71 @@
+# Survey: the base model on every public benchmark that can be downloaded and graded
+# with no login and no paid model. It also serves as a soak test of the free tier,
+# so the run records throughput over time.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 20261126
+
+# Settings: "fast" is a forced direct answer at effort 0.0, "slow" is effort 0.9,
+# and "effort_0" is free-running effort 0.0 on a fixed subsample of each benchmark.
+settings = ["fast", "slow", "effort_0"]
+reference_sample = 200
+
+# The multi-turn benchmark comes last because it is by far the heaviest on prompt tokens.
+benchmarks = [
+    "judgebench", "judgebench_pointwise", "rewardbench2", "llmbar",
+    "bfcl", "jsonschemabench", "gsm8k", "mbpp", "ifeval", "mmlu_pro", "bfcl_multi_turn",
+]
+
+progress_seconds = 60
+grading_workers = 4
+
+[client]
+max_concurrency = 32
+max_attempts = 4
+call_timeout_s = 1800          # a last resort; the SDK queues and retries on its own
+
+# Completion tokens per call assumed by --dry-run, from a trial of six items per
+# benchmark. For the multi-turn benchmark the figure is per model call.
+[estimates]
+chars_per_token = 3.5
+steps_per_turn = 3.0
+completion_tokens = 300
+
+[estimates.fast]
+judgebench = 4
+judgebench_pointwise = 4
+rewardbench2 = 4
+llmbar = 4
+bfcl = 45
+bfcl_multi_turn = 48
+jsonschemabench = 75
+gsm8k = 30
+mbpp = 85
+ifeval = 290
+mmlu_pro = 5
+
+[estimates.slow]
+judgebench = 3000
+judgebench_pointwise = 3900
+rewardbench2 = 460
+llmbar = 930
+bfcl = 370
+bfcl_multi_turn = 320
+jsonschemabench = 400
+gsm8k = 380
+mbpp = 2600
+ifeval = 2700
+mmlu_pro = 2300
+
+[estimates.effort_0]
+judgebench = 775
+judgebench_pointwise = 990
+rewardbench2 = 250
+llmbar = 250
+bfcl = 180
+bfcl_multi_turn = 180
+jsonschemabench = 350
+gsm8k = 230
+mbpp = 2000
+ifeval = 1440
+mmlu_pro = 800
