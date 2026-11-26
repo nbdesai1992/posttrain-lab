@@ -208,7 +208,13 @@ class Survey(Step):
         totals = Counter()
         last: dict = {}
 
+        model_path = unit.params.get("model_path")  # an adapter, when a later step evaluates one
+        examples = ctx.scratch.get("few_shot") if unit.params.get("few_shot") else None
+
         async def ask(messages: list[dict]) -> str | None:
+            if examples:  # worked examples go in front, after any system message
+                lead = 1 if messages and messages[0]["role"] == "system" else 0
+                messages = [*messages[:lead], *examples, *messages[lead:]]
             prompt = ctx.renderer.build_prompt(messages, effort)
             if len(prompt) + len(opening) + 16 > CONTEXT_WINDOW:
                 totals["prompt_tokens"] += len(prompt)
@@ -219,6 +225,7 @@ class Survey(Step):
                 effort=effort,
                 max_tokens=max_tokens,
                 top_logprobs=5 if (benchmark.choices and forced) else 0,
+                model_path=model_path,
                 tag=f"{benchmark.name}:{setting}",
             )
             record = result.record
@@ -266,6 +273,8 @@ class Survey(Step):
             row["native_tool_calls"] = totals["native_tool_calls"]
         row["latency_s"] = round(totals["latency_s"], 3)
         row.update(benchmark=benchmark.name, setting=setting, item=item.id)
+        if "state" in unit.params:
+            row["state"] = unit.params["state"]
         self._progress(ctx)
         return row
 

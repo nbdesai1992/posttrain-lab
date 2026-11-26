@@ -118,11 +118,16 @@ def build_sets(items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_
     moved = permuted_answers(main, answers, seed)
     add(f"shuffled-labels-{main_size}", main, cell="middle", answers=moved, unchanged_answers=sum(1 for i in main if moved.get(i) == answers[i]))
     add(f"length-matched-random-{main_size}", length_matched(main, everything, tokens, seed), cell="all")
+    # The pilot that fixes rank and learning rate trains on part of the middle-band dev
+    # items and is scored on the rest of the dev data. It never touches a training set.
+    pilot_train = dev["middle"][: (2 * len(dev["middle"])) // 3]
+    pilot = {"train": pilot_train, "score": [i for cell in CELLS for i in dev[cell] if i not in set(pilot_train)]}
     return {
         "seed": seed,
         "canary": CANARY,
         "sets": sets,
         "dev": dev,
+        "pilot": pilot,
         "prompt_examples": examples,
         "held_out": len(held_out),
         "available": {cell: len(ids) for cell, ids in available.items()},

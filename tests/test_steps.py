@@ -179,7 +179,7 @@ def test_help_lists_every_step(capsys):
     assert list(STEPS) == ["smoke", "survey", "build-data", "filter", "train", "eval", "report"]
 
 
-@pytest.mark.parametrize("name", ["train", "eval", "report"])
+@pytest.mark.parametrize("name", ["report"])
 def test_later_steps_say_not_implemented(name, tmp_path, renderer):
     lines: list[str] = []
     made: list[str] = []

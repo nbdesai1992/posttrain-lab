@@ -6,8 +6,10 @@ from .base import Step
 from .build_data import BuildData
 from .filter import Filter
 from .smoke import Smoke
-from .stubs import Eval, Report, Train
+from .evaluate import Eval
+from .stubs import Report
 from .survey import Survey
+from .train import Train
 
 STEPS: dict[str, Step] = {
     step.name: step for step in (Smoke(), Survey(), BuildData(), Filter(), Train(), Eval(), Report())

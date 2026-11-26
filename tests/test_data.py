@@ -26,6 +26,10 @@ from conftest import run
 @pytest.mark.parametrize("family", list(generators.FAMILIES))
 def test_each_family_is_repeatable_and_its_answers_grade(family):
     for level in generators.LEVELS:
+        if level > 5 and family not in generators.DEEP_FAMILIES:
+            with pytest.raises(ValueError):
+                generators.make_item(family, level, 0, 11)
+            continue
         first = [generators.make_item(family, level, i, 11) for i in range(30)]
         assert first == [generators.make_item(family, level, i, 11) for i in range(30)]
         assert [i["question"] for i in first] != [generators.make_item(family, level, i, 12)["question"] for i in range(30)]
@@ -41,7 +45,7 @@ def test_each_family_is_repeatable_and_its_answers_grade(family):
 
 def test_problems_grow_with_the_level():
     for family in ("arithmetic", "stock_story", "rates", "table", "ordering"):
-        lengths = [sum(len(generators.make_item(family, level, i, 3)["question"]) for i in range(40)) for level in generators.LEVELS]
+        lengths = [sum(len(generators.make_item(family, level, i, 3)["question"]) for i in range(40)) for level in (1, 2, 3, 4, 5)]
         assert lengths == sorted(lengths), family
 
 
@@ -63,6 +67,18 @@ def test_answers_are_right_when_checked_another_way():
             order.append(ahead_of[order[-1]])
         position = ["first", "second", "third", "fourth", "fifth"].index(re.search(r"Who is (\w+) in the line", line["question"]).group(1))
         assert order[position] == line["answer"]
+
+
+def test_digit_sum_counts_match_brute_force():
+    for n in (7, 99, 1000, 4821, 60000):
+        brute: dict[int, int] = {}
+        for k in range(0, n + 1):
+            total = sum(map(int, str(k)))
+            brute[total] = brute.get(total, 0) + 1
+        assert {k: v for k, v in generators.digit_sum_counts(n).items() if v} == brute
+    item = generators.make_item("counting", 6, 0, 1)
+    n, target = map(int, re.findall(r"\d+", item["question"])[1:3])
+    assert int(item["answer"]) == generators.digit_sum_counts(n).get(target, 0)
 
 
 def test_grading_reads_the_answer_first_and_names_without_case():

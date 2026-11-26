@@ -612,9 +612,10 @@ class TrainingRun:
         )
 
     async def train_pipelined(
-        self, batches: Sequence[Sequence[Example]], learning_rate: float, tag: str = ""
+        self, batches: Sequence[Sequence[Example]], learning_rate: float | Sequence[float], tag: str = ""
     ) -> tuple[list[dict], CallRecord]:
         """Several updates in a row, each submitted before the previous one is awaited.
+        ``learning_rate`` is one value for all of them or one value per batch.
 
         This is the fastest way to train: the service works in fixed cycles, and a
         loop that waits for each result before sending the next batch misses cycles.

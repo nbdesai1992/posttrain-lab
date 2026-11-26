@@ -316,7 +316,7 @@ def write_outputs(results_dir: Path, labeled: list[dict], built: dict, summary: 
         "summary.json": json.dumps(summary, indent=1) + "\n",
         "figure-data.json": json.dumps(figure_data(summary), indent=1) + "\n",
         "REPORT.md": render_report(summary),
-        "sets.json": json.dumps({k: built[k] for k in ("canary", "seed", "sets", "dev", "prompt_examples")}) + "\n",
+        "sets.json": json.dumps({k: built[k] for k in ("canary", "seed", "sets", "dev", "pilot", "prompt_examples")}) + "\n",
     }
     for name, text in files.items():
         (results_dir / name).write_text(text, encoding="utf-8")

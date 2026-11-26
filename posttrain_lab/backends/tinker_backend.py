@@ -485,11 +485,12 @@ class TinkerBackend:
             last = now
 
         pending = None
-        for examples in batches:
+        for index, examples in enumerate(batches):
             data = self._to_data(examples)
+            rate = learning_rate if isinstance(learning_rate, (int, float)) else learning_rate[index]
             submitted = (
                 run.forward_backward(data, "cross_entropy"),
-                run.optim_step(tinker.AdamParams(learning_rate=learning_rate)),
+                run.optim_step(tinker.AdamParams(learning_rate=rate)),
             )
             if pending is not None:
                 await collect(pending)

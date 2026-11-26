@@ -16,7 +16,11 @@ import random
 from typing import Callable
 
 GENERATOR_VERSION = 1
-LEVELS = (1, 2, 3, 4, 5)
+# Levels 1 to 5 exist for every family. Levels 6 and 7 exist for the families where a
+# much larger instance is still well defined; they are there to find problems the
+# reasoning setting gets wrong.
+LEVELS = (1, 2, 3, 4, 5, 6, 7)
+DEEP_FAMILIES = ("arithmetic", "sequence", "number_theory", "table", "code_trace", "calendar", "counting", "equations")
 NUMBER_SUFFIX = "Solve the problem. Give only the final answer as a number, with no units and no explanation."
 TEXT_SUFFIX = "Solve the problem. Give only the final answer, with no explanation."
 
@@ -45,10 +49,13 @@ def _expression(rng: random.Random, leaves: int, low: int, high: int, ops: str) 
 
 
 def arithmetic(rng: random.Random, level: int) -> dict:
-    leaves, low, high, ops = {1: (2, 11, 99, "+-"), 2: (3, 11, 99, "+-*"), 3: (5, 11, 199, "+-*"), 4: (7, 101, 999, "+-*"), 5: (10, 1001, 9999, "+-*")}[level]
+    leaves, low, high, ops = {
+        1: (2, 11, 99, "+-"), 2: (3, 11, 99, "+-*"), 3: (5, 11, 199, "+-*"), 4: (7, 101, 999, "+-*"), 5: (10, 1001, 9999, "+-*"),
+        6: (12, 10001, 999999, "+-*"), 7: (16, 1000001, 99999999, "+-*"),
+    }[level]
     while True:
         text, value = _expression(rng, leaves, low, high, ops)
-        if abs(value) < 10**15:
+        if abs(value) < (10**15 if level <= 5 else 10**40):
             return {"question": f"What is the value of {text}?", "answer": value, "params": {"terms": leaves, "low": low, "high": high}}
 
 
@@ -146,7 +153,7 @@ def sequence(rng: random.Random, level: int) -> dict:
     else:
         first, second = rng.randint(1, 40), rng.randint(1, 40)
         p, q = (1, 1) if level == 4 else (rng.randint(2, 3), rng.randint(1, 3))
-        n = rng.randint(10, 14) if level == 4 else rng.randint(12, 16)
+        n = {4: rng.randint(10, 14), 5: rng.randint(12, 16), 6: rng.randint(28, 36), 7: rng.randint(45, 60)}[level]
         a, b = first, second
         for _ in range(n - 2):
             a, b = b, p * b + q * a
@@ -173,7 +180,12 @@ def number_theory(rng: random.Random, level: int) -> dict:
     if level == 4:
         base, exponent, modulus = rng.randint(2, 19), rng.randint(9, 30), rng.randint(11, 97)
         return {"question": f"What is the remainder when {base} to the power {exponent} is divided by {modulus}?", "answer": pow(base, exponent, modulus), "params": {"kind": "power_mod"}}
-    base, exponent, modulus = rng.randint(102, 989), rng.randint(120, 900), rng.randint(1009, 9973)
+    if level == 5:
+        base, exponent, modulus = rng.randint(102, 989), rng.randint(120, 900), rng.randint(1009, 9973)
+    elif level == 6:
+        base, exponent, modulus = rng.randint(1002, 99989), rng.randint(10**4, 10**6), rng.randint(10007, 99991)
+    else:
+        base, exponent, modulus = rng.randint(100003, 9999991), rng.randint(10**7, 10**9), rng.randint(1000003, 9999991)
     return {"question": f"What is the remainder when {base} to the power {exponent} is divided by {modulus}?", "answer": pow(base, exponent, modulus), "params": {"kind": "power_mod_large"}}
 
 
@@ -181,11 +193,12 @@ def number_theory(rng: random.Random, level: int) -> dict:
 
 
 def table(rng: random.Random, level: int) -> dict:
-    rows = {1: 3, 2: 5, 3: 6, 4: 10, 5: 16}[level]
-    high = {1: 20, 2: 40, 3: 90, 4: 300, 5: 900}[level]
+    rows = {1: 3, 2: 5, 3: 6, 4: 10, 5: 16, 6: 28, 7: 45}[level]
+    high = {1: 20, 2: 40, 3: 90, 4: 300, 5: 900, 6: 2500, 7: 9000}[level]
     teams = ["north", "south", "east", "west"]
     people = rng.sample(NAMES, min(rows, len(NAMES)))
-    records = [(people[i % len(people)] + ("" if i < len(people) else " II"), rng.choice(teams), rng.randint(2, high), rng.randint(2, 60 if level > 2 else 12)) for i in range(rows)]
+    numerals = ["", " II", " III"]
+    records = [(people[i % len(people)] + numerals[i // len(people)], rng.choice(teams), rng.randint(2, high), rng.randint(2, 60 if level > 2 else 12) if level < 6 else rng.randint(11, 97)) for i in range(rows)]
     lines = [f"{name}: team {team}, {units} units sold at {price} dollars each" for name, team, units, price in records]
     team = rng.choice(sorted({r[1] for r in records}))
     if level == 1:
@@ -224,9 +237,16 @@ def code_trace(rng: random.Random, level: int) -> dict:
             f"n = {rng.randint(40, 400)}\nsteps = 0\nwhile n != 1:\n    if n % 2 == 0:\n        n = n // 2\n    else:\n        n = 3 * n + 1\n"
             f"    steps += 1\n    if steps == {rng.randint(18, 30)}:\n        break\nprint(n + steps)"
         )
-    else:
+    elif level == 7:
         code = (
-            f"state = {rng.randint(3, 50)}\ntotal = 0\nfor i in range({rng.randint(5, 8)}):\n    for j in range({rng.randint(5, 8)}):\n"
+            f"state = {rng.randint(3, 500)}\ntotal = 0\nfor i in range({rng.randint(5, 7)}):\n    for j in range({rng.randint(5, 7)}):\n        for k in range({rng.randint(5, 7)}):\n"
+            f"            state = (state * {a + 20} + i * j + k * {b}) % {rng.randint(1009, 9973)}\n            if state % {m} < {max(1, m // 2)}:\n                total += state // {a}\n"
+            f"            else:\n                total -= k\nprint(total * 3 + state)"
+        )
+    else:
+        outer, inner = (rng.randint(5, 8), rng.randint(5, 8)) if level == 5 else (rng.randint(10, 14), rng.randint(10, 14))
+        code = (
+            f"state = {rng.randint(3, 50)}\ntotal = 0\nfor i in range({outer}):\n    for j in range({inner}):\n"
             f"        state = (state * {a} + i * j + {b}) % {rng.randint(97, 499)}\n        if state % {m} == 0:\n            total += state\n"
             f"        else:\n            total += j\nprint(total + state)"
         )
@@ -244,14 +264,17 @@ def calendar(rng: random.Random, level: int) -> dict:
         spans = [rng.randint(15, 170) for _ in range(1 if level == 1 else 3)]
         end = hour * 60 + minute + sum(spans)
         parts = " and then ".join(f"{s} minutes" for s in spans)
-        question = f"A session starts at {hour}:{minute:02d} and runs for {parts} with no breaks. How many minutes after midnight does it end?"
+        question = (
+            f"On a 24-hour clock, a session starts at {hour:02d}:{minute:02d} and runs for {parts} with no breaks. "
+            "Counting from the midnight before it started, how many minutes after midnight does it end?"
+        )
         return {"question": question, "answer": end, "params": {"kind": "clock"}}
     start = datetime.date(rng.randint(2021, 2027), rng.randint(1, 12), rng.randint(1, 28))
     if level == 3:
         end = start + datetime.timedelta(days=rng.randint(40, 400))
         question = f"How many days are there from {start.day} {start:%B %Y} to {end.day} {end:%B %Y}, counting the last day but not the first?"
         return {"question": question, "answer": (end - start).days, "params": {"kind": "days_between"}}
-    stops = 3 if level == 4 else 6
+    stops = {4: 3, 5: 6, 6: 10, 7: 16}[level]
     day, total, parts = start, 0, []
     for _ in range(stops):
         gap = rng.randint(20, 300)
@@ -287,9 +310,34 @@ def counting(rng: random.Random, level: int) -> dict:
         a, b, c, n = rng.randint(3, 6), rng.randint(5, 9), rng.randint(7, 13), rng.randint(500, 5000)
         answer = sum(1 for k in range(1, n + 1) if k % a == 0 or k % b == 0 or k % c == 0)
         return {"question": f"How many whole numbers from 1 to {n} are multiples of at least one of {a}, {b} and {c}?", "answer": answer, "params": {"kind": "three_sets"}}
-    n, target = rng.randint(2000, 60000), rng.randint(9, 22)
-    answer = sum(1 for k in range(1, n + 1) if sum(map(int, str(k))) == target)
-    return {"question": f"How many whole numbers from 1 to {n} have digits that add up to exactly {target}?", "answer": answer, "params": {"kind": "digit_sum"}}
+    if level == 5:
+        n, target = rng.randint(2000, 60000), rng.randint(9, 22)
+    else:
+        n, target = (rng.randint(10**5, 10**7), rng.randint(15, 40)) if level == 6 else (rng.randint(10**9, 10**12), rng.randint(30, 70))
+    if level < 7:
+        answer = digit_sum_counts(n).get(target, 0)
+        return {"question": f"How many whole numbers from 1 to {n} have digits that add up to exactly {target}?", "answer": answer, "params": {"kind": "digit_sum"}}
+    divisor = rng.randint(7, 19)
+    answer = sum(count for total, count in digit_sum_counts(n).items() if total > 0 and total % divisor == 0)
+    return {"question": f"How many whole numbers from 1 to {n} have digits that add up to a positive multiple of {divisor}?", "answer": answer, "params": {"kind": "digit_sum_multiple"}}
+
+
+def digit_sum_counts(n: int) -> dict[int, int]:
+    """How many whole numbers from 0 to n have each digit sum, by a pass over the digits of n."""
+    digits = [int(d) for d in str(n)]
+    below: dict[int, int] = {}  # numbers already smaller than the prefix of n
+    prefix_sum = 0
+    for position, digit in enumerate(digits):
+        nxt: dict[int, int] = {}
+        for total, count in below.items():
+            for d in range(10):
+                nxt[total + d] = nxt.get(total + d, 0) + count
+        for d in range(digit):
+            nxt[prefix_sum + d] = nxt.get(prefix_sum + d, 0) + 1
+        below = nxt
+        prefix_sum += digit
+    below[prefix_sum] = below.get(prefix_sum, 0) + 1  # n itself
+    return below
 
 
 # ----------------------------------------------------------------- equations
@@ -297,6 +345,12 @@ def counting(rng: random.Random, level: int) -> dict:
 
 def _signed(text: str) -> str:
     return text.replace("+ -", "- ")
+
+
+def _determinant(matrix: list[list[int]]) -> int:
+    if len(matrix) == 1:
+        return matrix[0][0]
+    return sum((-1) ** col * matrix[0][col] * _determinant([row[:col] + row[col + 1 :] for row in matrix[1:]]) for col in range(len(matrix)))
 
 
 def equations(rng: random.Random, level: int) -> dict:
@@ -308,19 +362,19 @@ def equations(rng: random.Random, level: int) -> dict:
         a, c = rng.randint(3, 15), rng.randint(-40, 40)
         b = rng.choice([v for v in range(2, 10) if v != a])
         return {"question": _signed(f"Solve for x: {a}x + {c} = {b}x + {(a - b) * x + c}."), "answer": x, "params": {"unknowns": 1}}
-    size = 2 if level == 3 else 3
+    size = {3: 2, 4: 3, 5: 3, 6: 4, 7: 5}[level]
     while True:
-        m = [[rng.randint(1, 9) * rng.choice([1, 1, -1]) for _ in range(size)] for _ in range(size)]
-        if size == 2:
-            det = m[0][0] * m[1][1] - m[0][1] * m[1][0]
-        else:
-            det = (
-                m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
-                - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
-                + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
-            )
-        if det != 0:
+        m = [[rng.randint(1, 9 if level < 7 else 19) * rng.choice([1, 1, -1]) for _ in range(size)] for _ in range(size)]
+        if _determinant(m) != 0:
             break
+    if size > 3:
+        names = "xyzwv"[:size]
+        values = [rng.randint(-40, 60) * (1 if level == 6 else 13) for _ in range(size)]
+        lines = [" + ".join(f"{c}{v}" for c, v in zip(row, names)) + f" = {sum(c * x for c, x in zip(row, values))}" for row in m]
+        weights = [rng.randint(1, 7) * rng.choice([1, -1]) for _ in range(size)]
+        ask = " + ".join(f"{w}{v}" for w, v in zip(weights, names))
+        question = _signed("Solve the system " + ", ".join(lines) + f". What is {ask}?")
+        return {"question": question, "answer": sum(w * x for w, x in zip(weights, values)), "params": {"unknowns": size}}
     if size == 2:
         lines = [f"{r[0]}x + {r[1]}y = {r[0] * x + r[1] * y}" for r in m]
         return {"question": _signed("Solve the system " + " and ".join(lines) + ". What is x + y?"), "answer": x + y, "params": {"unknowns": 2}}
@@ -363,6 +417,8 @@ FAMILIES: dict[str, Callable[[random.Random, int], dict]] = {
 
 def make_item(family: str, level: int, index: int, seed: int) -> dict:
     """The problem a (seed, family, level, index) names. The same inputs always give the same item."""
+    if level > 5 and family not in DEEP_FAMILIES:
+        raise ValueError(f"{family} has no level {level}")
     rng = random.Random(f"{GENERATOR_VERSION}:{seed}:{family}:{level}:{index}")
     made = FAMILIES[family](rng, level)
     answer_type = made.get("answer_type", "number")
@@ -380,13 +436,38 @@ def make_item(family: str, level: int, index: int, seed: int) -> dict:
     }
 
 
-def grade_answer(item: dict, text: str) -> dict:
-    """Whether a reply gives the item's answer. Numbers are compared as numbers."""
-    from ..benchmarks.simple import parse_number
+def _exact(text: str):
+    from decimal import Decimal, InvalidOperation
 
+    cleaned = text.strip().strip("*`$ \n").rstrip(".%").replace(",", "").replace("$", "")
+    try:
+        value = Decimal(cleaned)
+        return value if value.is_finite() else None
+    except InvalidOperation:
+        return None
+
+
+def read_number(text: str):
+    """The number a reply gives, exactly (answers here can be far too large for a float).
+    A bare number is strict. Otherwise an opening line that is a bare number is read
+    as the answer, and failing that the last number in the reply."""
+    import re
+
+    value = _exact(text)
+    if value is not None:
+        return value, True
+    lines = [line for line in text.splitlines() if line.strip()]
+    if lines and _exact(lines[0]) is not None:
+        return _exact(lines[0]), False
+    found = re.findall(r"-?\d[\d,]*(?:\.\d+)?", text)
+    return (_exact(found[-1]) if found else None), False
+
+
+def grade_answer(item: dict, text: str) -> dict:
+    """Whether a reply gives the item's answer. Numbers are compared exactly."""
     if item["answer_type"] == "number":
-        value, strict = parse_number(text)
-        return {"score": float(value is not None and abs(value - float(item["answer"])) < 1e-6), "strict": strict}
+        value, strict = read_number(text)
+        return {"score": float(value is not None and value == _exact(item["answer"])), "strict": strict}
     lines = [line for line in text.strip().splitlines() if line.strip()]
     said = (lines[0] if lines else "").strip().strip("*`'\".,!: ").lower()
     return {"score": float(said == item["answer"].lower()), "strict": len(lines) == 1}

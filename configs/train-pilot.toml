@@ -1,0 +1,39 @@
+# The pilot that fixes rank and learning rate. Short runs on a slice of the held-out
+# generated dev items, scored on the rest of the dev items. It never sees a training
+# set or a benchmark. Checkpoints from the pilot expire after two days.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 20261126
+batch_size = 8
+epochs = 6
+updates_per_call = 16
+checkpoint_ttl_days = 2
+max_checkpoints = 90
+
+[client]
+max_concurrency = 16
+call_timeout_s = 1800
+
+[[runs]]
+name = "pilot-r16-lr2.7e-4"
+set = "pilot-train"
+rank = 16
+learning_rate = 2.7e-4
+
+[[runs]]
+name = "pilot-r16-lr5.4e-4"
+set = "pilot-train"
+rank = 16
+learning_rate = 5.4e-4
+
+[[runs]]
+name = "pilot-r16-lr1.1e-3"
+set = "pilot-train"
+rank = 16
+learning_rate = 1.1e-3
+
+[[runs]]
+name = "pilot-r32-lr5.4e-4"
+set = "pilot-train"
+rank = 32
+learning_rate = 5.4e-4

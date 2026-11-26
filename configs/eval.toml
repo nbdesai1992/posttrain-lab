@@ -1,0 +1,32 @@
+# Eval: every adapter in the fast setting on the survey benchmarks, paired with the base
+# model on the same items. The states are the base model, the prompt-only state below,
+# and every run listed in results/train/runs.json.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 20261126
+
+benchmarks = [
+    "gsm8k", "mbpp", "judgebench", "judgebench_pointwise", "rewardbench2", "llmbar",
+    "bfcl", "jsonschemabench", "ifeval", "mmlu_pro", "bfcl_multi_turn",
+]
+target_benchmarks = ["gsm8k", "mbpp"]    # the trained job; every other benchmark is a watch cell
+
+progress_seconds = 60
+grading_workers = 4
+
+# Items per benchmark: 0 means all of them, otherwise a fixed subsample of that size.
+[items]
+default = 500
+gsm8k = 0
+mbpp = 0
+bfcl_multi_turn = 60
+
+# The prompt-only arm: the eight held-out worked examples go in the prompt, no training.
+[[states]]
+name = "prompt-only"
+few_shot = true
+
+[client]
+max_concurrency = 32
+max_attempts = 4
+call_timeout_s = 1800

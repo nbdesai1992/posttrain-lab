@@ -95,6 +95,7 @@ class FakeBackend:
         *,
         answer: Callable[[str], str] | str = "yes",
         forced_answer: Callable[[str], str] | str | None = None,
+        adapter_answer: Callable[[str], str] | str | None = None,
         thinking_words: int = 6,
         latency_s: float = 0.0,
         failures: Sequence[BaseException | None] = (),
@@ -102,6 +103,7 @@ class FakeBackend:
         self.renderer = renderer
         self.answer = answer
         self.forced_answer = forced_answer  # what to say when the answer opening is forced, if different
+        self.adapter_answer = adapter_answer  # what a trained adapter says, if different
         self.thinking_words = thinking_words
         self.latency_s = latency_s
         self.failures = list(failures)  # raised one per call, in order; None means succeed
@@ -144,6 +146,8 @@ class FakeBackend:
         prompt_text = self.renderer.decode([t for t in prompt_tokens if t >= FIRST_WORD_ID])
         answer_forced = list(prompt_tokens[-2:]) == [MESSAGE_MODEL, CONTENT_TEXT]
         source = self.forced_answer if (answer_forced and self.forced_answer is not None) else self.answer
+        if model_path is not None and self.adapter_answer is not None:
+            source = self.adapter_answer
         answer = source(prompt_text) if callable(source) else source
         tokens: list[int] = []
         if answer_forced:
@@ -199,7 +203,9 @@ class FakeBackend:
 
     async def train_pipelined(self, run: Any, batches: Sequence[Sequence[Example]], learning_rate: float) -> list[dict]:
         results = []
+        self.learning_rates = getattr(self, "learning_rates", [])
         for index, examples in enumerate(batches):
+            self.learning_rates.append(learning_rate if isinstance(learning_rate, (int, float)) else learning_rate[index])
             step = await self.train_step(run, examples, learning_rate)
             results.append({"metrics": step["metrics"], "seconds": 0.5, "elapsed_s": 0.5 * (index + 1)})
         return results
@@ -216,10 +222,10 @@ class FakeBackend:
 
     async def account_snapshot(self) -> dict:
         return {
+            "checkpoints_listed": getattr(self, "stored_checkpoints", 0),
             "storage_rate_usd_per_gb_month": 0.0,
             "checkpoint_count": 0,
             "checkpoint_bytes": 0,
-            "checkpoints_listed": 0,
             "checkpoints_listed_bytes": 0,
             "usage_estimated_cost_usd": 0.0,
             "usage_by_model_and_type": {},
