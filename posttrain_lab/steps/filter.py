@@ -85,7 +85,7 @@ class Filter(Survey):
                 }
             )
         (ctx.runs_dir / "items.jsonl").write_text("".join(json.dumps(row) + "\n" for row in labeled), encoding="utf-8")
-        built = build_sets(labeled, seed=ctx.config.get("seed", 0), dev_per_cell=ctx.config.get("dev_per_cell", 100), sizes=tuple(ctx.config.get("sizes", SIZES)), main_size=ctx.config.get("main_size", MAIN_SIZE))
+        built = build_sets(labeled, seed=ctx.config.get("seed", 0), dev_per_cell=ctx.config.get("dev_per_cell", 100), pilot_items=ctx.config.get("pilot_items", 0), sizes=tuple(ctx.config.get("sizes", SIZES)), main_size=ctx.config.get("main_size", MAIN_SIZE))
         calls = list(read_jsonl(ctx.runs_dir / "calls.jsonl"))
         summary = build_summary(ctx, labeled, built, calls, len(items))
         write_outputs(ctx.results_dir.parent / "data", labeled, built, summary)
@@ -149,6 +149,7 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         },
         "sets": sets,
         "dev": {cell: len(ids) for cell, ids in built["dev"].items()},
+        "pilot": {k: built["pilot"][k] for k in ("n_items", "train_tokens")},
         "prompt_examples": [{"id": i, "family": by_id[i]["family"], "level": by_id[i]["level"]} for i in built["prompt_examples"]],
         "available_after_holding_out": built["available"],
         "targets": {"middle": max(ctx.config.get("sizes", SIZES)), "easy": ctx.config.get("main_size", MAIN_SIZE), "hard": ctx.config.get("main_size", MAIN_SIZE)},
@@ -185,7 +186,7 @@ def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict)
     if empty:
         cut.append({"what": "levels with no candidates", "count": 0, "why": "stock_story, rates and ordering have no generator above level 5, and the table family stops at level 5 because its longer tables run to 500 training tokens and more per item", "levels": empty})
     cut.append({"what": "candidates without a reply in both settings", "count": candidates - len(labeled), "why": "a call failed and stays pending"})
-    cut.append({"what": "held out of every training set", "count": built["held_out"], "why": "dev items for sanity checks and for fixing rank and learning rate, and the worked examples for the prompt-only arm"})
+    cut.append({"what": "held out of every training set", "count": built["held_out"], "why": "dev items for sanity checks, the slice the rank and learning rate pilot trains on, and the worked examples for the prompt-only arm"})
     rare = sum(1 for row in labeled if row["cell"] == "rare")
     cut.append({"what": "rare cell (fast right, reasoning wrong)", "count": rare, "why": "kept as items and eligible for the random sets, but no arm trains on this cell alone"})
     return cut
@@ -312,7 +313,8 @@ def render_report(summary: dict) -> str:
     add(
         "Held out of every training set: a dev set of "
         + ", ".join(f"{n} {cell}" for cell, n in summary["dev"].items())
-        + f" items for sanity checks, and {len(summary['prompt_examples'])} middle-band examples for the prompt-only arm "
+        + f" items for sanity checks, {summary['pilot']['n_items']:,} middle-band items ({summary['pilot']['train_tokens']:,} training tokens) "
+        f"that the pilot for rank and learning rate trains on, and {len(summary['prompt_examples'])} middle-band examples for the prompt-only arm "
         f"(from the families {', '.join(sorted({e['family'] for e in summary['prompt_examples']}))})."
     )
 

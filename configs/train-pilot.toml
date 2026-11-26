@@ -1,24 +1,34 @@
-# The pilot that fixes rank and learning rate. Short runs on a slice of the held-out
-# generated dev items, scored on the rest of the dev items. It never sees a training
-# set or a benchmark. Checkpoints from the pilot expire after two days.
+# The pilot that fixes rank and learning rate for every later run.
+#
+# Five short runs on the pilot slice: 500 middle-band items that are held out of every
+# training set. Each run is scored on the held-out dev items (150 from each cell) and
+# on nothing else. No benchmark is involved. Batch size and the number of passes are
+# the ones the full runs use.
+#
+# The rule, fixed before the runs: take the highest accuracy on the middle-band dev
+# items. A setting is out if its accuracy on the easy dev items is more than two
+# points under the best one's, or if any of its dev replies does not finish. Settings
+# within one standard error of the best count as tied, and a tie goes to the lower
+# loss on the middle-band dev items.
 
 model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+folder = "train-pilot"                  # rows go to runs/train-pilot and results to results/train-pilot
 seed = 20261126
-batch_size = 8
-epochs = 6
+batch_size = 32
+epochs = 4
 updates_per_call = 16
-checkpoint_ttl_days = 2
-max_checkpoints = 90
+checkpoint_ttl_days = 2                 # pilot adapters are not kept
+max_checkpoints = 90                    # the service stores at most 100 per organisation
 
 [client]
 max_concurrency = 16
 call_timeout_s = 1800
 
 [[runs]]
-name = "pilot-r16-lr2.7e-4"
+name = "pilot-r16-lr1.8e-4"
 set = "pilot-train"
 rank = 16
-learning_rate = 2.7e-4
+learning_rate = 1.8e-4
 
 [[runs]]
 name = "pilot-r16-lr5.4e-4"
@@ -27,10 +37,16 @@ rank = 16
 learning_rate = 5.4e-4
 
 [[runs]]
-name = "pilot-r16-lr1.1e-3"
+name = "pilot-r16-lr1.6e-3"
 set = "pilot-train"
 rank = 16
-learning_rate = 1.1e-3
+learning_rate = 1.6e-3
+
+[[runs]]
+name = "pilot-r8-lr5.4e-4"
+set = "pilot-train"
+rank = 8
+learning_rate = 5.4e-4
 
 [[runs]]
 name = "pilot-r32-lr5.4e-4"

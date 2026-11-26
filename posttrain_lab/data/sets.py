@@ -69,11 +69,14 @@ def permuted_answers(ids: list[str], answers: dict[str, str], seed: int) -> dict
     return best or {}
 
 
-def build_sets(items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_examples: int = 8, sizes=SIZES, main_size: int = MAIN_SIZE) -> dict:
+def build_sets(
+    items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_examples: int = 8, pilot_items: int = 0, sizes=SIZES, main_size: int = MAIN_SIZE
+) -> dict:
     """Every training set the arms need, as lists of item ids.
 
     ``items`` need ``id``, ``cell``, ``family``, ``answer`` and ``train_tokens``.
-    Dev items and the prompt-only examples are held out of every training set.
+    Dev items, the prompt-only examples and the pilot slice are held out of every
+    training set.
     """
     tokens = {item["id"]: item["train_tokens"] for item in items}
     answers = {item["id"]: item["answer"] for item in items}
@@ -95,6 +98,10 @@ def build_sets(items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_
         if len(examples) < prompt_examples and item not in examples:
             examples.append(item)
     held_out.update(examples)
+    # The pilot that fixes rank and learning rate trains on its own slice of the middle
+    # band and is scored on the dev items. It never touches a training set.
+    pilot_train = shuffled([i for i in by_cell["middle"] if i not in held_out], seed, "pilot")[:pilot_items]
+    held_out.update(pilot_train)
 
     available = {cell: [i for i in by_cell[cell] if i not in held_out] for cell in CELLS}
     everything = [i for cell in CELLS for i in available[cell]]
@@ -121,10 +128,7 @@ def build_sets(items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_
     moved = permuted_answers(main, answers, seed)
     add(f"shuffled-labels-{main_size}", main, cell="middle", answers=moved, unchanged_answers=sum(1 for i in main if moved.get(i) == answers[i]))
     add(f"length-matched-random-{main_size}", length_matched(main, everything, tokens, seed), cell="all")
-    # The pilot that fixes rank and learning rate trains on part of the middle-band dev
-    # items and is scored on the rest of the dev data. It never touches a training set.
-    pilot_train = dev["middle"][: (2 * len(dev["middle"])) // 3]
-    pilot = {"train": pilot_train, "score": [i for cell in CELLS for i in dev[cell] if i not in set(pilot_train)]}
+    pilot = {"train": pilot_train, "n_items": len(pilot_train), "train_tokens": sum(tokens[i] for i in pilot_train)}
     return {
         "seed": seed,
         "canary": CANARY,

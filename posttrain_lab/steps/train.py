@@ -9,6 +9,7 @@ sanity check. A finished run is skipped on rerun; an interrupted one starts over
 
 from __future__ import annotations
 
+import asyncio
 import gzip
 import json
 import random
@@ -41,6 +42,21 @@ def set_items(name: str, items: dict[str, dict], sets: dict) -> list[dict]:
     entry = sets["sets"][name]
     moved = entry.get("answers", {})  # the shuffled-label set trains on permuted answers
     return [{**items[i], "answer": moved.get(i, items[i]["answer"])} for i in entry["items"]]
+
+
+def fast_example(renderer, prompt: str, answer: str) -> tuple[list[int], list[float]]:
+    """A training example for the fast setting, as tokens and loss weights.
+
+    The prompt and the forced answer opening carry no loss, as they are given at
+    sampling time. The answer and the tokens that end the reply carry all of it.
+    """
+    messages = [{"role": "user", "content": prompt}]
+    special = renderer.special
+    given = [*renderer.build_prompt(messages, FAST_EFFORT), special.message_model, special.content_text]
+    tokens, weights = renderer.build_example([*messages, {"role": "assistant", "content": answer}], FAST_EFFORT)
+    if list(tokens[: len(given)]) != given:
+        raise ValueError("A training example does not start with the fast-setting prompt")
+    return list(tokens), [0.0] * len(given) + [float(w) for w in weights[len(given) :]]
 
 
 def schedule(n_items: int, batch_size: int, epochs: int, seed: int) -> list[list[int]]:
@@ -90,14 +106,22 @@ class Train(Step):
         if stored >= ctx.config.get("max_checkpoints", 90):
             raise AccountBlockedError(f"{stored} checkpoints are stored, at or over the limit this step allows itself. Let some expire or delete them.")
 
-        examples = [
-            ctx.renderer.build_example([{"role": "user", "content": row["prompt"]}, {"role": "assistant", "content": row["answer"]}], FAST_EFFORT)
-            for row in rows
-        ]
+        examples = [fast_example(ctx.renderer, row["prompt"], row["answer"]) for row in rows]
         batches = schedule(len(rows), p["batch_size"], p["epochs"], p["seed"])
         rates = [p["learning_rate"] * (1 - step / len(batches)) for step in range(len(batches))]  # linear decay to zero
         started = time.monotonic()
         training = await client.create_training_run(rank=p["rank"], seed=p["seed"], tag=p["name"])
+        held = {cell: [fast_example(ctx.renderer, items[i]["prompt"], items[i]["answer"]) for i in ids] for cell, ids in sets["dev"].items() if ids}
+
+        async def dev_loss() -> dict[str, float]:
+            """Loss per target token on the held-out generated items, without an update."""
+            out = {}
+            for cell, batch in held.items():
+                result, _ = await training.forward(batch, tag=f"{p['name']}:dev-loss")
+                out[cell] = round(result.get("metrics", {}).get("loss:sum", 0.0) / max(sum(sum(w) for _, w in batch), 1.0), 5)
+            return out
+
+        dev_loss_before = await dev_loss()
         losses: list[float] = []
         chunk = ctx.config.get("updates_per_call", 16)
         for start in range(0, len(batches), chunk):
@@ -109,6 +133,7 @@ class Train(Step):
             append_jsonl(ctx.runs_dir / "progress.jsonl", {"run": p["name"], "updates": start + len(group), "of": len(batches), "loss": losses[-1], "seconds": round(time.monotonic() - started, 1)})
             ctx.out(f"    {p['name']}: {start + len(group)}/{len(batches)} updates, loss {losses[-1]:.4f}, {time.monotonic() - started:.0f} s")
         train_seconds = time.monotonic() - started
+        dev_loss_after = await dev_loss()
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         ttl = int(ctx.config.get("checkpoint_ttl_days", 30) * 86400)
@@ -117,19 +142,19 @@ class Train(Step):
         await client.load_adapter(path, tag=p["name"])  # refuses an adapter whose base model is not free
 
         # A sanity check on held-out generated items. Never a headline number.
-        score_ids = sets["pilot"]["score"] if p["set"] == "pilot-train" else [i for ids in sets["dev"].values() for i in ids]
+        score_ids = [i for ids in sets["dev"].values() for i in ids]
         client.set_concurrency(ctx.config.get("client", {}).get("max_concurrency", 16))
         dev = {}
         for item_id in score_ids:
             dev[item_id] = client.sample([{"role": "user", "content": items[item_id]["prompt"]}], effort=FAST_EFFORT, max_tokens=256, force_answer=True, model_path=path, tag=f"{p['name']}:dev")
-        import asyncio
-
         replies = dict(zip(dev, await asyncio.gather(*dev.values())))
         by_cell: dict[str, list[float]] = {}
         thinking = 0
+        unfinished = 0
         for item_id, reply in replies.items():
             by_cell.setdefault(items[item_id]["cell"], []).append(generators.grade_answer(items[item_id], reply.text)["score"])
             thinking += reply.record.thinking_tokens
+            unfinished += int(not reply.parsed.ended)
         tail = losses[-max(1, len(losses) // 10) :]
         return {
             **{k: p[k] for k in ("name", "set", "seed", "rank", "learning_rate", "batch_size", "epochs", "set_fingerprint")},
@@ -145,9 +170,13 @@ class Train(Step):
             "tinker_path": path,
             "checkpoint": info,
             "checkpoint_ttl_days": ctx.config.get("checkpoint_ttl_days", 30),
+            "dev_loss_before": dev_loss_before,
+            "dev_loss": dev_loss_after,
             "dev_accuracy": {cell: round(sum(scores) / len(scores), 4) for cell, scores in sorted(by_cell.items())},
             "dev_items": len(replies),
             "dev_thinking_tokens": thinking,
+            "dev_unfinished_replies": unfinished,
+            "loss_weighted_tokens": int(sum(sum(weights) for _, weights in examples)),
             "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
 
@@ -156,13 +185,13 @@ class Train(Step):
         ctx.results_dir.mkdir(parents=True, exist_ok=True)
         (ctx.results_dir / "runs.json").write_text(json.dumps({"model_id": ctx.config.get("model_id"), "runs": runs}, indent=1) + "\n", encoding="utf-8")
         lines = ["# Training runs", "", "One adapter per run. Dev accuracy is on held-out generated items in the fast setting and is a sanity check only.", "",
-                 "| run | set | seed | rank | learning rate | items | updates | training tokens | s per update | loss first | loss last | dev middle | dev easy | dev hard | checkpoint |",
-                 "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+                 "| run | set | seed | rank | learning rate | items | updates | training tokens | s per update | loss first | loss last | dev loss, middle | dev middle | dev easy | dev hard | checkpoint |",
+                 "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for r in runs:
             dev = r["dev_accuracy"]
             lines.append(
                 f"| {r['name']} | {r['set']} | {r['seed']} | {r['rank']} | {r['learning_rate']:g} | {r['items']:,} | {r['updates']} | {r['train_tokens']:,} | "
-                f"{r['seconds_per_update']} | {r['loss_first']:.3f} | {r['loss_last']:.3f} | {dev.get('middle', '')} | {dev.get('easy', '')} | {dev.get('hard', '')} | `{r['tinker_path']}` |"
+                f"{r['seconds_per_update']} | {r['loss_first']:.3f} | {r['loss_last']:.3f} | {r['dev_loss'].get('middle', '')} | {dev.get('middle', '')} | {dev.get('easy', '')} | {dev.get('hard', '')} | `{r['tinker_path']}` |"
             )
         (ctx.results_dir / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         ctx.out(f"Wrote {ctx.results_dir / 'runs.json'}")

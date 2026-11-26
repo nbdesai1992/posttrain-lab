@@ -79,13 +79,14 @@ async def _run(args: argparse.Namespace, make_renderer: Callable, make_backend: 
         return 2
     config["model_id"] = model_id
 
-    runs_dir = Path(args.runs_dir) / step.name
+    folder = config.get("folder", step.name)  # a config can keep its rows and results apart, as the pilot does
+    runs_dir = Path(args.runs_dir) / folder
     ctx = StepContext(
         step=step.name,
         config=config,
         renderer=make_renderer(model_id),
         runs_dir=runs_dir,
-        results_dir=Path(args.results_dir) / step.name,
+        results_dir=Path(args.results_dir) / folder,
         store=JsonlStore(runs_dir / "results.jsonl"),
         out=out,
     )

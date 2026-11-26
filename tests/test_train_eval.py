@@ -11,7 +11,7 @@ import pytest
 from posttrain_lab.data.sets import build_sets
 from posttrain_lab.steps.base import StepContext, run_step
 from posttrain_lab.steps.evaluate import Eval
-from posttrain_lab.steps.train import Train, schedule, set_items
+from posttrain_lab.steps.train import Train, fast_example, schedule, set_items
 from posttrain_lab.store import JsonlStore
 from posttrain_lab.testing import FakeBackend
 
@@ -27,7 +27,7 @@ def data_dir(tmp_path, renderer):
         prompt, answer = f"what is {k} plus {k}", str(2 * k)
         items.append({"id": f"i{k:03d}", "cell": ["middle", "middle", "easy", "hard"][k % 4], "family": f"f{k % 9}", "prompt": prompt, "answer": answer,
                       "answer_type": "number", "train_tokens": len(renderer.build_example([{"role": "user", "content": prompt}, {"role": "assistant", "content": answer}], 0.0)[0])})
-    built = build_sets(items, seed=1, dev_per_cell=9, sizes=(10, 20), main_size=10)
+    built = build_sets(items, seed=1, dev_per_cell=9, pilot_items=6, sizes=(10, 20), main_size=10)
     out = tmp_path / "data"
     out.mkdir()
     with gzip.open(out / "items.jsonl.gz", "wt") as handle:
@@ -68,7 +68,13 @@ def test_train_records_each_run_and_decays_the_learning_rate(tmp_path, renderer,
     assert main["train_tokens"] == 2 * main["set_train_tokens"] and main["tinker_path"].startswith("tinker://")
     assert main["loss_last"] < main["loss_first"] and main["dev_items"] == 27 and main["dev_accuracy"] == {"easy": 1.0, "hard": 1.0, "middle": 1.0}
     assert runs["pilot-r8"]["rank"] == 8 and runs["pilot-r8"]["learning_rate"] == 1e-3 and runs["pilot-r8"]["items"] == 6
-    assert runs["pilot-r8"]["dev_items"] == 27 - 6
+    assert runs["pilot-r8"]["dev_items"] == 27 and main["dev_unfinished_replies"] == 0
+    assert set(main["dev_loss"]) == {"easy", "middle", "hard"} and main["dev_loss"]["middle"] < main["dev_loss_before"]["middle"]
+    # The prompt and the forced opening carry no loss: the answer and the two closing tokens do.
+    tokens, weights = fast_example(renderer, "what is 3 plus 3", "6")
+    forced = [*renderer.build_prompt([{"role": "user", "content": "what is 3 plus 3"}], 0.0), renderer.special.message_model, renderer.special.content_text]
+    assert tokens[: len(forced)] == forced and weights == [0.0] * len(forced) + [1.0] * (len(tokens) - len(forced)) and len(tokens) - len(forced) == 3
+    assert main["loss_weighted_tokens"] == 30
     assert runs["wrong-labels"]["set_fingerprint"] != main["set_fingerprint"]
     assert backend.training_calls.count("create") == 3 and backend.training_calls.count("save") == 3
     rates = backend.learning_rates[:6]
@@ -149,3 +155,21 @@ def test_eval_marks_a_watch_cell_that_falls(tmp_path, renderer, make_client, dat
     cell = json.loads((ctx.results_dir / "summary.json").read_text())["states"]["broken"]["benchmarks"]["parity"]
     assert cell["role"] == "watch" and cell["regression"] is True and cell["minus_base"]["estimate"] < -0.4 and cell["n"] == 21
     assert "regression" in (ctx.results_dir / "REPORT.md").read_text()
+
+
+def test_a_config_can_keep_its_runs_in_their_own_folder(tmp_path, renderer, data_dir):
+    from posttrain_lab import cli
+
+    config = tmp_path / "pilot.toml"
+    config.write_text(
+        f'model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"\nfolder = "train-pilot"\ndata_dir = "{data_dir}"\nbatch_size = 4\nepochs = 1\n'
+        '[[runs]]\nname = "pilot-a"\nset = "pilot-train"\nrank = 8\nlearning_rate = 1e-3\n'
+    )
+    backend = FakeBackend(renderer)
+    code = cli.main(
+        ["train", "--config", str(config), "--runs-dir", str(tmp_path / "runs"), "--results-dir", str(tmp_path / "results")],
+        make_renderer=lambda model_id: renderer, make_backend=lambda allow_paid: backend, out=lambda line: None,
+    )
+    assert code == 0
+    assert (tmp_path / "runs" / "train-pilot" / "results.jsonl").exists() and not (tmp_path / "runs" / "train").exists()
+    assert json.loads((tmp_path / "results" / "train-pilot" / "runs.json").read_text())["runs"][0]["name"] == "pilot-a"

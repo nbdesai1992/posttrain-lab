@@ -19,7 +19,7 @@ grading_workers = 4
 default = 500
 gsm8k = 0
 mbpp = 0
-bfcl_multi_turn = 60
+bfcl_multi_turn = 0                     # all 200 items of the survey's sample; the costliest cell, about 36M prompt tokens per state
 
 # The prompt-only arm: the eight held-out worked examples go in the prompt, no training.
 [[states]]
