@@ -1,0 +1,653 @@
+{
+ "generated_at": "2026-11-26T22:22:54+00:00",
+ "settings": {
+  "fast": "forced direct answer at effort 0.0 (no reasoning block)",
+  "slow": "effort 0.9, free-running",
+  "effort_0": "effort 0.0, free-running (the shipped no-effort setting), on a fixed subsample"
+ },
+ "capability_map": [
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "job": "Judging answers",
+   "role": "target",
+   "chance": 0.5,
+   "gap_points": -4.6,
+   "classification": "usable as is",
+   "fast": {
+    "score": 0.6895,
+    "low": 0.6589,
+    "high": 0.7186,
+    "n": 1240
+   },
+   "slow": {
+    "score": 0.6435,
+    "low": 0.6089,
+    "high": 0.6774,
+    "n": 1240
+   },
+   "effort_0": {
+    "score": 0.725,
+    "low": 0.645,
+    "high": 0.8,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "job": "Judging answers",
+   "role": "target",
+   "chance": 0.5,
+   "gap_points": -0.2,
+   "classification": "usable as is",
+   "fast": {
+    "score": 0.6129,
+    "low": 0.5919,
+    "high": 0.6347,
+    "n": 1240
+   },
+   "slow": {
+    "score": 0.6113,
+    "low": 0.5798,
+    "high": 0.6411,
+    "n": 1240
+   },
+   "effort_0": {
+    "score": 0.775,
+    "low": 0.715,
+    "high": 0.835,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "job": "Judging answers",
+   "role": "target",
+   "chance": 0.25,
+   "gap_points": -0.1,
+   "classification": "usable as is",
+   "fast": {
+    "score": 0.7124,
+    "low": 0.6874,
+    "high": 0.7352,
+    "n": 1723
+   },
+   "slow": {
+    "score": 0.7116,
+    "low": 0.6884,
+    "high": 0.7334,
+    "n": 1723
+   },
+   "effort_0": {
+    "score": 0.8264,
+    "low": 0.7656,
+    "high": 0.8798,
+    "n": 195
+   }
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "job": "Judging answers",
+   "role": "target",
+   "chance": 0.5,
+   "gap_points": 11.6,
+   "classification": "training target",
+   "fast": {
+    "score": 0.7458,
+    "low": 0.71,
+    "high": 0.7816,
+    "n": 838
+   },
+   "slow": {
+    "score": 0.8616,
+    "low": 0.8317,
+    "high": 0.8902,
+    "n": 838
+   },
+   "effort_0": {
+    "score": 0.845,
+    "low": 0.78,
+    "high": 0.91,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "job": "Calling tools",
+   "role": "target",
+   "chance": null,
+   "gap_points": 4.2,
+   "classification": "in between",
+   "fast": {
+    "score": 0.741,
+    "low": 0.7064,
+    "high": 0.7742,
+    "n": 3491
+   },
+   "slow": {
+    "score": 0.7833,
+    "low": 0.7497,
+    "high": 0.8173,
+    "n": 3491
+   },
+   "effort_0": {
+    "score": 0.803,
+    "low": 0.7341,
+    "high": 0.8703,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "job": "Filling a schema",
+   "role": "candidate",
+   "chance": null,
+   "gap_points": 2.3,
+   "classification": "usable as is",
+   "fast": {
+    "score": 0.956,
+    "low": 0.943,
+    "high": 0.969,
+    "n": 1000
+   },
+   "slow": {
+    "score": 0.979,
+    "low": 0.97,
+    "high": 0.987,
+    "n": 1000
+   },
+   "effort_0": {
+    "score": 0.985,
+    "low": 0.965,
+    "high": 1.0,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "gsm8k",
+   "title": "GSM8K",
+   "job": "Reasoning without the wait",
+   "role": "candidate",
+   "chance": null,
+   "gap_points": 58.3,
+   "classification": "training target",
+   "fast": {
+    "score": 0.3745,
+    "low": 0.348,
+    "high": 0.4011,
+    "n": 1319
+   },
+   "slow": {
+    "score": 0.9575,
+    "low": 0.9462,
+    "high": 0.9682,
+    "n": 1319
+   },
+   "effort_0": {
+    "score": 0.965,
+    "low": 0.94,
+    "high": 0.985,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "mbpp",
+   "title": "MBPP (sanitized test split)",
+   "job": "Reasoning without the wait",
+   "role": "candidate",
+   "chance": null,
+   "gap_points": 10.1,
+   "classification": "training target",
+   "fast": {
+    "score": 0.821,
+    "low": 0.7743,
+    "high": 0.8677,
+    "n": 257
+   },
+   "slow": {
+    "score": 0.9222,
+    "low": 0.8872,
+    "high": 0.9533,
+    "n": 257
+   },
+   "effort_0": {
+    "score": 0.935,
+    "low": 0.9,
+    "high": 0.97,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "job": "Instructions and knowledge",
+   "role": "watch",
+   "chance": null,
+   "gap_points": 7.4,
+   "classification": "watch only (in between)",
+   "fast": {
+    "score": 0.6839,
+    "low": 0.6433,
+    "high": 0.7246,
+    "n": 541
+   },
+   "slow": {
+    "score": 0.7579,
+    "low": 0.7227,
+    "high": 0.793,
+    "n": 541
+   },
+   "effort_0": {
+    "score": 0.875,
+    "low": 0.83,
+    "high": 0.92,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "job": "Instructions and knowledge",
+   "role": "watch",
+   "chance": 0.1,
+   "gap_points": 16.6,
+   "classification": "watch only (training target)",
+   "fast": {
+    "score": 0.564,
+    "low": 0.52,
+    "high": 0.61,
+    "n": 500
+   },
+   "slow": {
+    "score": 0.73,
+    "low": 0.6899,
+    "high": 0.766,
+    "n": 500
+   },
+   "effort_0": {
+    "score": 0.805,
+    "low": 0.745,
+    "high": 0.86,
+    "n": 200
+   }
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "job": "Calling tools",
+   "role": "target",
+   "chance": null,
+   "gap_points": 12.0,
+   "classification": "training target",
+   "fast": {
+    "score": 0.285,
+    "low": 0.22,
+    "high": 0.35,
+    "n": 200
+   },
+   "slow": {
+    "score": 0.405,
+    "low": 0.34,
+    "high": 0.4701,
+    "n": 200
+   },
+   "effort_0": {
+    "score": 0.3322,
+    "low": 0.2184,
+    "high": 0.4492,
+    "n": 60
+   }
+  }
+ ],
+ "tokens_per_answer_against_score": [
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "setting": "fast",
+   "score": 0.6895,
+   "completion_tokens_per_answer": 4.1,
+   "thinking_tokens_per_answer": 0.5,
+   "prompt_tokens_per_answer": 1360.5,
+   "latency_p50_s": 2.35
+  },
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "setting": "slow",
+   "score": 0.6435,
+   "completion_tokens_per_answer": 4270.4,
+   "thinking_tokens_per_answer": 4264.1,
+   "prompt_tokens_per_answer": 1360.5,
+   "latency_p50_s": 34.16
+  },
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "setting": "effort_0",
+   "score": 0.725,
+   "completion_tokens_per_answer": 2623.6,
+   "thinking_tokens_per_answer": 2616.6,
+   "prompt_tokens_per_answer": 1350.8,
+   "latency_p50_s": 13.88
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "setting": "fast",
+   "score": 0.6129,
+   "completion_tokens_per_answer": 3.7,
+   "thinking_tokens_per_answer": 0.6,
+   "prompt_tokens_per_answer": 839.6,
+   "latency_p50_s": 1.91
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "setting": "slow",
+   "score": 0.6113,
+   "completion_tokens_per_answer": 4160.3,
+   "thinking_tokens_per_answer": 4154.0,
+   "prompt_tokens_per_answer": 839.6,
+   "latency_p50_s": 38.76
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "setting": "effort_0",
+   "score": 0.775,
+   "completion_tokens_per_answer": 2166.9,
+   "thinking_tokens_per_answer": 2159.3,
+   "prompt_tokens_per_answer": 828.1,
+   "latency_p50_s": 13.75
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "setting": "fast",
+   "score": 0.7124,
+   "completion_tokens_per_answer": 3.1,
+   "thinking_tokens_per_answer": 0.0,
+   "prompt_tokens_per_answer": 1851.2,
+   "latency_p50_s": 2.2
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "setting": "slow",
+   "score": 0.7116,
+   "completion_tokens_per_answer": 2479.1,
+   "thinking_tokens_per_answer": 2472.3,
+   "prompt_tokens_per_answer": 1851.2,
+   "latency_p50_s": 8.53
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "setting": "effort_0",
+   "score": 0.8264,
+   "completion_tokens_per_answer": 1137.4,
+   "thinking_tokens_per_answer": 1129.8,
+   "prompt_tokens_per_answer": 1797.1,
+   "latency_p50_s": 5.45
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "setting": "fast",
+   "score": 0.7458,
+   "completion_tokens_per_answer": 3.1,
+   "thinking_tokens_per_answer": 0.0,
+   "prompt_tokens_per_answer": 332.5,
+   "latency_p50_s": 1.83
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "setting": "slow",
+   "score": 0.8616,
+   "completion_tokens_per_answer": 608.0,
+   "thinking_tokens_per_answer": 600.1,
+   "prompt_tokens_per_answer": 332.5,
+   "latency_p50_s": 4.41
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "setting": "effort_0",
+   "score": 0.845,
+   "completion_tokens_per_answer": 270.7,
+   "thinking_tokens_per_answer": 262.7,
+   "prompt_tokens_per_answer": 340.7,
+   "latency_p50_s": 3.08
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "setting": "fast",
+   "score": 0.741,
+   "completion_tokens_per_answer": 57.5,
+   "thinking_tokens_per_answer": 4.4,
+   "prompt_tokens_per_answer": 1284.4,
+   "latency_p50_s": 0.0
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "setting": "slow",
+   "score": 0.7833,
+   "completion_tokens_per_answer": 394.0,
+   "thinking_tokens_per_answer": 321.7,
+   "prompt_tokens_per_answer": 1284.4,
+   "latency_p50_s": 0.0
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "setting": "effort_0",
+   "score": 0.803,
+   "completion_tokens_per_answer": 210.2,
+   "thinking_tokens_per_answer": 148.4,
+   "prompt_tokens_per_answer": 1290.0,
+   "latency_p50_s": 0.0
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "setting": "fast",
+   "score": 0.956,
+   "completion_tokens_per_answer": 136.4,
+   "thinking_tokens_per_answer": 0.0,
+   "prompt_tokens_per_answer": 2334.8,
+   "latency_p50_s": 2.52
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "setting": "slow",
+   "score": 0.979,
+   "completion_tokens_per_answer": 657.3,
+   "thinking_tokens_per_answer": 511.1,
+   "prompt_tokens_per_answer": 2334.8,
+   "latency_p50_s": 4.28
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "setting": "effort_0",
+   "score": 0.985,
+   "completion_tokens_per_answer": 421.5,
+   "thinking_tokens_per_answer": 299.0,
+   "prompt_tokens_per_answer": 1927.1,
+   "latency_p50_s": 3.96
+  },
+  {
+   "benchmark": "gsm8k",
+   "title": "GSM8K",
+   "setting": "fast",
+   "score": 0.3745,
+   "completion_tokens_per_answer": 18.4,
+   "thinking_tokens_per_answer": 5.4,
+   "prompt_tokens_per_answer": 98.7,
+   "latency_p50_s": 1.9
+  },
+  {
+   "benchmark": "gsm8k",
+   "title": "GSM8K",
+   "setting": "slow",
+   "score": 0.9575,
+   "completion_tokens_per_answer": 427.5,
+   "thinking_tokens_per_answer": 419.4,
+   "prompt_tokens_per_answer": 98.7,
+   "latency_p50_s": 3.18
+  },
+  {
+   "benchmark": "gsm8k",
+   "title": "GSM8K",
+   "setting": "effort_0",
+   "score": 0.965,
+   "completion_tokens_per_answer": 278.7,
+   "thinking_tokens_per_answer": 270.6,
+   "prompt_tokens_per_answer": 97.2,
+   "latency_p50_s": 2.95
+  },
+  {
+   "benchmark": "mbpp",
+   "title": "MBPP (sanitized test split)",
+   "setting": "fast",
+   "score": 0.821,
+   "completion_tokens_per_answer": 72.7,
+   "thinking_tokens_per_answer": 0.0,
+   "prompt_tokens_per_answer": 160.3,
+   "latency_p50_s": 2.27
+  },
+  {
+   "benchmark": "mbpp",
+   "title": "MBPP (sanitized test split)",
+   "setting": "slow",
+   "score": 0.9222,
+   "completion_tokens_per_answer": 1162.7,
+   "thinking_tokens_per_answer": 1104.0,
+   "prompt_tokens_per_answer": 160.3,
+   "latency_p50_s": 4.64
+  },
+  {
+   "benchmark": "mbpp",
+   "title": "MBPP (sanitized test split)",
+   "setting": "effort_0",
+   "score": 0.935,
+   "completion_tokens_per_answer": 922.0,
+   "thinking_tokens_per_answer": 862.9,
+   "prompt_tokens_per_answer": 156.4,
+   "latency_p50_s": 4.53
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "setting": "fast",
+   "score": 0.6839,
+   "completion_tokens_per_answer": 294.9,
+   "thinking_tokens_per_answer": 2.2,
+   "prompt_tokens_per_answer": 64.1,
+   "latency_p50_s": 4.59
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "setting": "slow",
+   "score": 0.7579,
+   "completion_tokens_per_answer": 2528.6,
+   "thinking_tokens_per_answer": 2287.1,
+   "prompt_tokens_per_answer": 64.1,
+   "latency_p50_s": 12.6
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "setting": "effort_0",
+   "score": 0.875,
+   "completion_tokens_per_answer": 1350.6,
+   "thinking_tokens_per_answer": 1063.5,
+   "prompt_tokens_per_answer": 63.6,
+   "latency_p50_s": 9.01
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "setting": "fast",
+   "score": 0.564,
+   "completion_tokens_per_answer": 3.7,
+   "thinking_tokens_per_answer": 0.1,
+   "prompt_tokens_per_answer": 224.2,
+   "latency_p50_s": 1.57
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "setting": "slow",
+   "score": 0.73,
+   "completion_tokens_per_answer": 2310.3,
+   "thinking_tokens_per_answer": 2303.4,
+   "prompt_tokens_per_answer": 224.2,
+   "latency_p50_s": 6.87
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "setting": "effort_0",
+   "score": 0.805,
+   "completion_tokens_per_answer": 1150.7,
+   "thinking_tokens_per_answer": 1143.1,
+   "prompt_tokens_per_answer": 219.8,
+   "latency_p50_s": 4.45
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "setting": "fast",
+   "score": 0.285,
+   "completion_tokens_per_answer": 608.3,
+   "thinking_tokens_per_answer": 44.6,
+   "prompt_tokens_per_answer": 182345.6,
+   "latency_p50_s": 0.0
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "setting": "slow",
+   "score": 0.405,
+   "completion_tokens_per_answer": 4469.0,
+   "thinking_tokens_per_answer": 3459.7,
+   "prompt_tokens_per_answer": 175361.8,
+   "latency_p50_s": 31.2
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "setting": "effort_0",
+   "score": 0.3322,
+   "completion_tokens_per_answer": 2461.0,
+   "thinking_tokens_per_answer": 1780.9,
+   "prompt_tokens_per_answer": 157982.0,
+   "latency_p50_s": 2.7
+  }
+ ],
+ "not_run": [
+  {
+   "benchmark": "llm_aggrefact",
+   "title": "LLM-AggreFact",
+   "job": "Checking claims against a source",
+   "reason": "not run, needs a token: the dataset is gated on Hugging Face (licence CC-BY-ND-4.0)"
+  },
+  {
+   "benchmark": "wildguardtest",
+   "title": "WildGuardTest",
+   "job": "Screening for harm",
+   "reason": "not run, needs a token: the dataset is gated on Hugging Face (licence ODC-BY)"
+  }
+ ]
+}
