@@ -946,6 +946,11 @@ def _overlap_summary(row: dict) -> dict:
         first_done[i] < all_done[j] for i in range(len(clients)) for j in range(len(clients)) if i != j
     )
     overlap["longest_wait_for_first_update_s"] = max(first_done)
+    if not overlap["trained_at_the_same_time"]:
+        # These two figures describe clients that ran one after the other, so they
+        # say nothing about training side by side.
+        overlap.pop("steady_seconds_per_update_together", None)
+        overlap.pop("combined_tokens_per_min", None)
     return row
 
 

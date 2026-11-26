@@ -1,6 +1,6 @@
 # Smoke test report
 
-Model ID `thinkingmachines/Inkling-2-Mini:peft:65536:free`. Generated 2026-11-26T19:10:50+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every number below was measured by the smoke step unless it says otherwise. The full data is in `summary.json` next to this file, and the raw rows are in `runs/smoke/`.
+Model ID `thinkingmachines/Inkling-2-Mini:peft:65536:free`. Generated 2026-11-26T19:14:18+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every number below was measured by the smoke step unless it says otherwise. The full data is in `summary.json` next to this file, and the raw rows are in `runs/smoke/`.
 
 ## Sampling throughput
 

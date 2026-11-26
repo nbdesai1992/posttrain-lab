@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T19:10:50+00:00",
+  "generated_at": "2026-11-26T19:14:18+00:00",
   "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
   "versions": {
     "tinker": "0.40.1",
@@ -3705,8 +3705,6 @@
           }
         ],
         "steady_seconds_per_update_alone": 5.93,
-        "steady_seconds_per_update_together": 5.53,
-        "combined_tokens_per_min": 265237.0,
         "trained_at_the_same_time": false,
         "longest_wait_for_first_update_s": 142.89
       },
