@@ -1,0 +1,7 @@
+# Direct dependencies, pinned to the versions the smoke test ran with (2026-11-26).
+# tml-renderers ships only an Apple-silicon wheel for macOS, so use an arm64 Python.
+# The full resolved set is in requirements.lock.
+tinker==0.40.1
+tml-renderers==0.5.0
+tinker-cookbook==0.7.1
+pytest==9.2.0

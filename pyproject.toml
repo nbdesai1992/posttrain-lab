@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "posttrain-lab"
+version = "0.1.0"
+description = "Post-training experiments on a small open-weight model using Tinker's free model ID"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "tinker==0.40.1",
+    "tml-renderers==0.5.0",
+    "tinker-cookbook==0.7.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0"]
+
+[project.scripts]
+posttrain-lab = "posttrain_lab.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["posttrain_lab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+cache_dir = "runs.nosync/.pytest_cache"
+addopts = "-q -p no:cacheprovider"

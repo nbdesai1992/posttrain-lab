@@ -1,0 +1,25 @@
+# Heavy or private directories. Names ending in .nosync are skipped by iCloud Drive.
+*.nosync/
+.venv
+.venv.nosync
+runs
+runs.nosync
+tools.nosync
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Secrets never belong in this repository
+.env
+.env.*
+*api_key*
+*.pem
+
+# macOS
+.DS_Store
+*.icloud
