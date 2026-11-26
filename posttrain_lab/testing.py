@@ -1,7 +1,7 @@
 """A fake renderer and backend, so everything above the SDK can run offline.
 
 The tests use these, and they are handy when developing a new step: the whole
-pipeline runs in milliseconds and no request leaves the machine.
+step runs in milliseconds and no request leaves the machine.
 """
 
 from __future__ import annotations

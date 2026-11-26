@@ -26,17 +26,13 @@ from typing import Any, Sequence
 
 from ..guard import check_model_id
 from ..render import Message, SpecialTokens
-from .base import CURRENT_CALL, ErrorInfo, Example, RawSample, ServiceEvent
+from .base import CURRENT_CALL, ErrorInfo, Example, MissingKeyError, RawSample, ServiceEvent
 
 KEY_ENV = "TINKER_API_KEY"
 MAX_EVENTS = 20_000
 RATE_HEADER_PREFIXES = ("retry-after", "x-ratelimit", "ratelimit", "x-rate-limit")
 BILLING_PAUSE_MARKER = "paused due to billing status"
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
-
-
-class MissingKeyError(RuntimeError):
-    pass
 
 
 def require_key() -> None:

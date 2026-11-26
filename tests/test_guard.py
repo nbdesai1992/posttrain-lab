@@ -125,3 +125,16 @@ def test_only_the_tinker_backend_imports_the_sdk():
             if any(n.split(".")[0] in ("tinker", "tinker_cookbook", "tml_renderers") for n in names):
                 importers.add(path.name)
     assert importers == {"tinker_backend.py"}
+
+
+def test_a_missing_key_is_reported_in_one_line(tmp_path, renderer, monkeypatch):
+    monkeypatch.delenv("TINKER_API_KEY", raising=False)
+    lines: list[str] = []
+    code = cli.main(
+        ["smoke", "--runs-dir", str(tmp_path / "runs"), "--results-dir", str(tmp_path / "results")],
+        make_renderer=lambda model_id: renderer,
+        out=lines.append,
+    )
+    assert code == 2
+    assert lines[-1].startswith("error: TINKER_API_KEY is not set")
+    assert not (tmp_path / "runs").exists()

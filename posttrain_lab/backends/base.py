@@ -13,6 +13,10 @@ CURRENT_CALL: contextvars.ContextVar[Any] = contextvars.ContextVar("posttrain_la
 Example = tuple[list[int], list[float]]  # (tokens, per-token loss weights)
 
 
+class MissingKeyError(RuntimeError):
+    """The API key is not in the environment."""
+
+
 @dataclass
 class RawSample:
     """One sampled sequence as the service returned it."""

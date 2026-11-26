@@ -9,6 +9,7 @@ import tomllib
 from pathlib import Path
 from typing import Callable, Sequence
 
+from .backends.base import MissingKeyError
 from .client import ModelClient, RetryPolicy
 from .guard import FREE_MODEL_ID, PaidModelError, check_model_id
 from .steps import STEPS
@@ -91,7 +92,11 @@ async def _run(args: argparse.Namespace, make_renderer: Callable, make_backend: 
     if args.dry_run:
         return await run_step(step, ctx, dry_run=True, fresh=args.fresh, only=args.only)
 
-    backend = make_backend(args.allow_paid)
+    try:
+        backend = make_backend(args.allow_paid)
+    except MissingKeyError as exc:
+        out(f"error: {exc}")
+        return 2
     client_config = config.get("client", {})
     ctx.client = ModelClient(
         backend,
