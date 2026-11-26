@@ -213,7 +213,7 @@ class RewardBench2(Benchmark):
             answer = LETTERS[[is_best for _, is_best in candidates].index(True)]
             items.append(
                 Item(
-                    id=str(row["id"]),
+                    id=f"{row['subset']}:{row['id']}",  # the dataset's own ids repeat across subsets
                     messages=user(self.PROMPT.format(prompt=row["prompt"], responses=responses)),
                     answer=answer,
                     group=row["subset"],

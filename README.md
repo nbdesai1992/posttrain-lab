@@ -16,7 +16,7 @@ The survey scores the base model on public benchmarks in three settings. `fast` 
 |---|---|---|---|---|---|---|
 | JudgeBench, pairwise | Judging answers | 69.0 | 64.3 | -4.6 | 72.5 | usable as is |
 | JudgeBench, one response at a time | Judging answers | 61.3 | 61.1 | -0.2 | 77.5 | usable as is |
-| RewardBench 2, best of four | Judging answers | 71.2 | 71.2 | -0.1 | 82.6 | usable as is |
+| RewardBench 2, best of four | Judging answers | 70.9 | 70.8 | -0.1 | 82.2 | usable as is |
 | LLMBar | Judging answers | 74.6 | 86.2 | +11.6 | 84.5 | training target |
 | BFCL V4, single turn | Calling tools | 74.1 | 78.3 | +4.2 | 80.3 | in between |
 | JSONSchemaBench (sample of 1,000) | Filling a schema | 95.6 | 97.9 | +2.3 | 98.5 | usable as is |

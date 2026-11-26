@@ -177,6 +177,7 @@ def test_rewardbench2_shuffles_once_and_skips_ties(tmp_path):
     bench = RewardBench2()
     items = bench.load(tmp_path, seed=5)
     assert len(items) == 8 and all(i.group == "Math" for i in items)
+    assert items[0].id == "Math:0" and len({i.id for i in items}) == 8
     assert [i.answer for i in items] == [i.answer for i in bench.load(tmp_path, seed=5)]
     assert len({i.answer for i in items}) > 1  # the best response is not always in the same place
     for item in items:

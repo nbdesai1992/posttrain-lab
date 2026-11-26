@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-26T22:22:54+00:00",
+ "generated_at": "2026-11-26T22:31:02+00:00",
  "settings": {
   "fast": "forced direct answer at effort 0.0 (no reasoning block)",
   "slow": "effort 0.9, free-running",
@@ -69,22 +69,22 @@
    "gap_points": -0.1,
    "classification": "usable as is",
    "fast": {
-    "score": 0.7124,
-    "low": 0.6874,
-    "high": 0.7352,
-    "n": 1723
+    "score": 0.7094,
+    "low": 0.686,
+    "high": 0.7328,
+    "n": 1763
    },
    "slow": {
-    "score": 0.7116,
-    "low": 0.6884,
-    "high": 0.7334,
-    "n": 1723
+    "score": 0.7082,
+    "low": 0.6845,
+    "high": 0.731,
+    "n": 1763
    },
    "effort_0": {
-    "score": 0.8264,
-    "low": 0.7656,
-    "high": 0.8798,
-    "n": 195
+    "score": 0.822,
+    "low": 0.766,
+    "high": 0.8786,
+    "n": 200
    }
   },
   {
@@ -369,31 +369,31 @@
    "benchmark": "rewardbench2",
    "title": "RewardBench 2, best of four",
    "setting": "fast",
-   "score": 0.7124,
+   "score": 0.7094,
    "completion_tokens_per_answer": 3.1,
    "thinking_tokens_per_answer": 0.0,
-   "prompt_tokens_per_answer": 1851.2,
-   "latency_p50_s": 2.2
+   "prompt_tokens_per_answer": 1858.5,
+   "latency_p50_s": 0.0
   },
   {
    "benchmark": "rewardbench2",
    "title": "RewardBench 2, best of four",
    "setting": "slow",
-   "score": 0.7116,
-   "completion_tokens_per_answer": 2479.1,
-   "thinking_tokens_per_answer": 2472.3,
-   "prompt_tokens_per_answer": 1851.2,
-   "latency_p50_s": 8.53
+   "score": 0.7082,
+   "completion_tokens_per_answer": 2535.4,
+   "thinking_tokens_per_answer": 2528.6,
+   "prompt_tokens_per_answer": 1858.5,
+   "latency_p50_s": 0.0
   },
   {
    "benchmark": "rewardbench2",
    "title": "RewardBench 2, best of four",
    "setting": "effort_0",
-   "score": 0.8264,
-   "completion_tokens_per_answer": 1137.4,
-   "thinking_tokens_per_answer": 1129.8,
-   "prompt_tokens_per_answer": 1797.1,
-   "latency_p50_s": 5.45
+   "score": 0.822,
+   "completion_tokens_per_answer": 1084.3,
+   "thinking_tokens_per_answer": 1076.6,
+   "prompt_tokens_per_answer": 1839.7,
+   "latency_p50_s": 4.82
   },
   {
    "benchmark": "llmbar",

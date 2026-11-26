@@ -1,6 +1,6 @@
 # Survey report
 
-The base model `thinkingmachines/Inkling-2-Mini:peft:65536:free` on public benchmarks, generated 2026-11-26T22:22:54+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every score comes from this repository's harness at temperature 0 with one prompt per benchmark, and every reply was graded by a program. Scores are percentages with 95% bootstrap intervals. The full data is in `summary.json`, and the raw replies are in `runs/survey/`.
+The base model `thinkingmachines/Inkling-2-Mini:peft:65536:free` on public benchmarks, generated 2026-11-26T22:31:02+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every score comes from this repository's harness at temperature 0 with one prompt per benchmark, and every reply was graded by a program. Scores are percentages with 95% bootstrap intervals. The full data is in `summary.json`, and the raw replies are in `runs/survey/`.
 
 The settings:
 
@@ -14,7 +14,7 @@ The settings:
 |---|---|---|---|---|---|---|
 | JudgeBench, pairwise | Judging answers | 1,240 | 69.0 (65.9 to 71.9) | 64.3 (60.9 to 67.7) | -4.6 (-8.6 to -0.6) | usable as is |
 | JudgeBench, one response at a time | Judging answers | 1,240 | 61.3 (59.2 to 63.5) | 61.1 (58.0 to 64.1) | -0.2 (-3.4 to +2.9) | usable as is |
-| RewardBench 2, best of four | Judging answers | 1,723 | 71.2 (68.7 to 73.5) | 71.2 (68.8 to 73.3) | -0.1 (-2.7 to +2.6) | usable as is |
+| RewardBench 2, best of four | Judging answers | 1,763 | 70.9 (68.6 to 73.3) | 70.8 (68.5 to 73.1) | -0.1 (-2.8 to +2.5) | usable as is |
 | LLMBar | Judging answers | 838 | 74.6 (71.0 to 78.2) | 86.2 (83.2 to 89.0) | +11.6 (+8.5 to +14.8) | training target |
 | BFCL V4, single turn | Calling tools | 3,491 | 74.1 (70.6 to 77.4) | 78.3 (75.0 to 81.7) | +4.2 (+1.5 to +7.1) | in between |
 | JSONSchemaBench (sample of 1,000) | Filling a schema | 1,000 | 95.6 (94.3 to 96.9) | 97.9 (97.0 to 98.7) | +2.3 (+1.1 to +3.5) | usable as is |
@@ -36,7 +36,7 @@ Free-running effort 0.0 still reasons before it answers. It ran on a fixed subsa
 |---|---|---|---|---|---|---|---|---|
 | JudgeBench, pairwise | 200 | 66.0 (58.5 to 73.0) | 72.5 (64.5 to 80.0) | 67.5 (59.0 to 76.0) | +6.5 (-2.5 to +16.0) | -5.0 (-10.5 to +0.5) | 2,617 | in between |
 | JudgeBench, one response at a time | 200 | 62.5 (58.0 to 67.5) | 77.5 (71.5 to 83.5) | 69.5 (62.5 to 76.5) | +15.0 (+8.0 to +22.0) | -8.0 (-13.5 to -2.5) | 2,159 | training target |
-| RewardBench 2, best of four | 195 | 79.2 (72.9 to 85.2) | 82.6 (76.6 to 88.0) | 73.4 (67.0 to 79.5) | +3.4 (-4.3 to +10.9) | -9.2 (-13.9 to -4.7) | 1,130 | in between |
+| RewardBench 2, best of four | 200 | 69.7 (63.5 to 76.1) | 82.2 (76.6 to 87.9) | 76.7 (70.8 to 82.8) | +12.5 (+4.8 to +19.5) | -5.5 (-9.1 to -2.3) | 1,077 | training target |
 | LLMBar | 200 | 77.5 (70.0 to 84.5) | 84.5 (78.0 to 91.0) | 85.0 (78.5 to 90.5) | +7.0 (+2.0 to +12.0) | +0.5 (-3.0 to +4.0) | 263 | in between |
 | BFCL V4, single turn | 200 | 80.7 (74.0 to 87.2) | 80.3 (73.4 to 87.0) | 81.0 (74.4 to 87.8) | -0.4 (-4.5 to +3.4) | +0.7 (-3.4 to +4.6) | 148 | usable as is |
 | JSONSchemaBench (sample of 1,000) | 200 | 96.5 (93.5 to 99.0) | 98.5 (96.5 to 100.0) | 99.0 (97.5 to 100.0) | +2.0 (+0.0 to +4.5) | +0.5 (+0.0 to +1.5) | 299 | usable as is |
@@ -56,8 +56,8 @@ A reply is cut off when it reaches the token limit (8,192 tokens for slow and ef
 | JudgeBench, pairwise | effort_0 | 200 | 33 | 16% | 72.5 | 86.8 |
 | JudgeBench, one response at a time | slow | 1,240 | 349 | 28% | 61.1 | 85.1 |
 | JudgeBench, one response at a time | effort_0 | 200 | 13 | 6% | 77.5 | 82.9 |
-| RewardBench 2, best of four | slow | 1,723 | 335 | 19% | 71.2 | 90.3 |
-| RewardBench 2, best of four | effort_0 | 195 | 13 | 7% | 82.6 | 90.4 |
+| RewardBench 2, best of four | slow | 1,763 | 354 | 20% | 70.8 | 90.0 |
+| RewardBench 2, best of four | effort_0 | 200 | 12 | 6% | 82.2 | 88.2 |
 | LLMBar | slow | 838 | 9 | 1% | 86.2 | 87.1 |
 | LLMBar | effort_0 | 200 | 0 | 0% | 84.5 | 84.5 |
 | BFCL V4, single turn | slow | 3,491 | 16 | 0% | 78.3 | 78.3 |
@@ -85,9 +85,9 @@ A reply is cut off when it reaches the token limit (8,192 tokens for slow and ef
 | JudgeBench, one response at a time | fast | 840 | 4 | 3 | 3 | 16 | 1 | 0 | 1.91 | 3.74 | 63 | 0 |
 | JudgeBench, one response at a time | slow | 840 | 4,160 | 3,304 | 8,192 | 8,192 | 4,154 | 8,190 | 38.76 | 121.72 | 349 | 0 |
 | JudgeBench, one response at a time | effort_0 | 828 | 2,167 | 1,456 | 4,899 | 8,192 | 2,159 | 4,891 | 13.75 | 44.77 | 13 | 0 |
-| RewardBench 2, best of four | fast | 1,851 | 3 | 3 | 3 | 16 | 0 | 0 | 2.2 | 3.97 | 7 | 0 |
-| RewardBench 2, best of four | slow | 1,851 | 2,479 | 785 | 8,192 | 8,192 | 2,472 | 8,190 | 8.53 | 52.3 | 335 | 0 |
-| RewardBench 2, best of four | effort_0 | 1,797 | 1,137 | 342 | 2,412 | 8,192 | 1,130 | 2,404 | 5.45 | 39.04 | 13 | 0 |
+| RewardBench 2, best of four | fast | 1,858 | 3 | 3 | 3 | 16 | 0 | 0 | 0.0 | 0.0 | 7 | 0 |
+| RewardBench 2, best of four | slow | 1,858 | 2,535 | 826 | 8,192 | 8,192 | 2,529 | 8,190 | 0.0 | 0.0 | 354 | 0 |
+| RewardBench 2, best of four | effort_0 | 1,840 | 1,084 | 396 | 2,243 | 8,192 | 1,077 | 2,235 | 4.82 | 36.85 | 12 | 0 |
 | LLMBar | fast | 332 | 3 | 3 | 3 | 16 | 0 | 0 | 1.83 | 2.94 | 5 | 0 |
 | LLMBar | slow | 332 | 608 | 282 | 1,173 | 8,192 | 600 | 1,165 | 4.41 | 21.31 | 9 | 0 |
 | LLMBar | effort_0 | 341 | 271 | 186 | 514 | 2,793 | 263 | 506 | 3.08 | 7.61 | 0 | 0 |
@@ -125,9 +125,9 @@ For the multi-turn benchmark the figures are totals over all the model calls an 
 | JudgeBench, one response at a time | fast | 61.3 | 41.9 | 34.8 |  |  |  | 4 |
 | JudgeBench, one response at a time | slow | 61.1 | 10.7 | 10.8 |  |  |  | 349 |
 | JudgeBench, one response at a time | effort_0 | 77.5 | 14.0 | 18.0 |  |  |  | 13 |
-| RewardBench 2, best of four | fast | 71.2 |  |  |  |  |  | 0 |
-| RewardBench 2, best of four | slow | 71.2 |  |  |  |  |  | 335 |
-| RewardBench 2, best of four | effort_0 | 82.6 |  |  |  |  |  | 13 |
+| RewardBench 2, best of four | fast | 70.9 |  |  |  |  |  | 0 |
+| RewardBench 2, best of four | slow | 70.8 |  |  |  |  |  | 354 |
+| RewardBench 2, best of four | effort_0 | 82.2 |  |  |  |  |  | 12 |
 | LLMBar | fast | 74.6 |  |  | 84.5 | 66.8 | 48.9 | 0 |
 | LLMBar | slow | 86.2 |  |  | 91.6 | 82.1 | 52.2 | 9 |
 | LLMBar | effort_0 | 84.5 |  |  | 91.0 | 80.0 | 53.5 | 0 |
@@ -158,7 +158,7 @@ RewardBench 2, best of four:
 
 | group | items | fast | slow |
 |---|---|---|---|
-| Factuality | 435 | 75.2 | 54.9 |
+| Factuality | 475 | 73.7 | 53.3 |
 | Focus | 495 | 89.3 | 81.6 |
 | Math | 183 | 66.1 | 88.0 |
 | Precise IF | 160 | 39.4 | 51.2 |
@@ -220,7 +220,7 @@ BFCL V4, multi turn (sample of 200):
 
 ## Throughput over the run
 
-The run kept up to 32 requests in flight. It made 33,659 sampling calls with 119,311,070 prompt tokens and 24,930,315 completion tokens, of which 23,266,765 were thinking tokens. 0 calls failed, 0 were retried and 0 saw a throttling event.
+The run kept up to 32 requests in flight. It made 33,893 sampling calls with 119,776,928 prompt tokens and 25,286,792 completion tokens, of which 23,621,738 were thinking tokens. 0 calls failed, 0 were retried and 0 saw a throttling event.
 
 | window start (UTC) | requests | req/min | prompt tok/min | completion tok/min | latency p50 (s) | p95 (s) | max (s) | errors | throttle events |
 |---|---|---|---|---|---|---|---|---|---|
@@ -241,7 +241,8 @@ The run kept up to 32 requests in flight. It made 33,659 sampling calls with 119
 | 11-26 21:50 | 3,016 | 278.0 | 3,249,598 | 33,907 | 4.86 | 15.03 | 86.0 | 0 | 0 |
 | 11-26 22:00 | 1,630 | 265.4 | 3,450,877 | 94,742 | 4.01 | 13.18 | 63.0 | 0 | 0 |
 | 11-26 22:10 | 2,272 | 298.1 | 3,853,860 | 80,883 | 3.01 | 10.0 | 83.8 | 0 | 0 |
-| 11-26 22:20 | 4 | 6.4 | 103,810 | 16,247 | 8.83 | 29.09 | 31.9 | 0 | 0 |
+| 11-26 22:20 | 236 | 24.9 | 55,455 | 37,155 | 9.13 | 62.92 | 129.9 | 0 | 0 |
+| 11-26 22:30 | 2 | 0.7 | 1,689 | 4,740 | 161.04 | 169.26 | 170.2 | 0 | 0 |
 
 The service raised no throttling event, no paused queue state and no billing pause during the run.
 
@@ -253,7 +254,7 @@ Estimated cost of all metered usage in the 24 hours up to the end of the run, as
 |---|---|---|---|
 | JudgeBench, pairwise | 1,240 | labels that ship with the benchmark | MIT |
 | JudgeBench, one response at a time | 1,240 | labels that ship with the benchmark | MIT |
-| RewardBench 2, best of four | 1,723 | labels that ship with the benchmark | ODC-BY |
+| RewardBench 2, best of four | 1,763 | labels that ship with the benchmark | ODC-BY |
 | LLMBar | 838 | labels that ship with the benchmark | MIT |
 | BFCL V4, single turn | 3,491 | BFCL's AST checker | Apache-2.0 |
 | JSONSchemaBench (sample of 1,000) | 1,000 | a JSON Schema validator | MIT |

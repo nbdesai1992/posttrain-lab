@@ -95,6 +95,8 @@ class Survey(Step):
         for name in names:
             benchmark = registry[name]
             items = benchmark.load(root, seed)
+            if len({item.id for item in items}) != len(items):
+                raise ValueError(f"{name}: two items share an id, so one would silently replace the other")
             if ctx.config.get("limit"):  # a trial run on a few items per benchmark
                 keep = set(fixed_sample(list(dict.fromkeys(i.cluster for i in items)), ctx.config["limit"], seed))
                 items = [item for item in items if item.cluster in keep]
