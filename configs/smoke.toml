@@ -1,0 +1,85 @@
+# Smoke test. A few minutes of calls on the free model ID, sized to answer its
+# questions and no more. Rate limits on the free tier are unpublished, so the
+# concurrency sweep starts at 1 and stops climbing if throttling takes over.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 20261126
+
+[client]
+max_concurrency = 8
+max_attempts = 4
+call_timeout_s = 300
+
+# Completion tokens per call assumed by --dry-run. Rough figures from the first calls.
+[estimates]
+completion_tokens_effort_0 = 60
+completion_tokens_effort_default = 90
+completion_tokens_forced = 8
+
+# Short prompts at each effort, with a fixed number of requests in flight.
+[throughput]
+efforts = [0.0, 0.9]
+concurrency = [1, 4, 16, 32]
+requests = [30, 40, 48, 64]
+max_tokens = 512
+max_seconds = 150              # stop launching new requests at a level after this long
+throttled_fraction_stop = 0.5  # stop climbing once this share of requests was throttled
+
+# Long prompts with one generated token each, to measure how fast input is read.
+[prefill]
+concurrency = 16
+requests = 24
+source_sentences = 100         # about 2,000 prompt tokens
+
+# The same varied prompts at effort 0.0, at the default 0.9, and at 0.0 with the
+# reply forced to open as an answer.
+[behaviour]
+per_kind = 17                  # 17 arithmetic, 17 yes/no judgments, 17 extractions
+max_tokens = 1024
+concurrency = 8
+
+[verdict]
+items = 12
+max_tokens = 512
+concurrency = 6
+
+[training]
+enabled = true
+rank = 16
+learning_rate = 5.4e-4         # the cookbook's starting point: hyperparam_utils.get_lr(model)
+short_examples = 32
+long_examples = 16
+long_sentences = 30            # about 600 tokens per long example
+small_batch = 8
+forward_calls = 2
+separate_steps = 2             # forward_backward and optim_step awaited one after the other
+adapter_samples = 3
+checkpoint_ttl_seconds = 604800  # the saved adapter expires after 7 days
+
+# Updates with the gradient and optimizer requests sent back to back.
+[[training.phases]]
+name = "8 short examples"
+pool = "short"
+batch = 8
+steps = 3
+
+[[training.phases]]
+name = "32 short examples"
+pool = "short"
+batch = 32
+steps = 3
+
+[[training.phases]]
+name = "16 long examples"
+pool = "long"
+batch = 16
+steps = 3
+
+[context]
+enabled = true
+limit_tokens = 65536
+over_limit_tokens = 66000
+margin_tokens = 64             # the near-limit prompt leaves this much room
+near_limit = true
+sum_over_limit = true          # same prompt, but prompt plus max_tokens passes the limit
+sum_over_max_tokens = 256
