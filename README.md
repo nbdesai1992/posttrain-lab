@@ -4,13 +4,23 @@ This repository holds a post-training study of Inkling 2 Mini, a small open-weig
 
 ## Status
 
-Only the smoke test exists so far. It measures what the free tier can do, which is what the rest of the plan will be sized on. The later steps (`survey`, `build-data`, `filter`, `train`, `eval`, `report`) are registered as subcommands and print "not implemented yet".
+Only the smoke test exists so far. It measures what the free tier can do, which is what the rest of the plan will be sized on, and it was last run on 2026-11-26. The later steps (`survey`, `build-data`, `filter`, `train`, `eval`, `report`) are registered as subcommands and print "not implemented yet".
 
 The smoke test's numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md), with the full data in `results/smoke/summary.json`.
 
+## What the smoke test found
+
+Three results shape the steps that follow.
+
+At effort 0.0 the base model still reasons before it answers. All 51 test prompts and all 12 judging prompts opened with a reasoning block at effort 0.0, and the block was only a little shorter than at the default effort of 0.9. A reply with no reasoning needs the answer opening to be forced. `ModelClient.sample(..., force_answer=True)` does that by ending the prompt with the two tokens that open a text answer.
+
+The probability of a one-token verdict is read with `ModelClient.score_choices`, which scores the candidate tokens at the answer position in one request. Reading it from a sampled reply is of no use, because once the model has reasoned its way to a verdict the verdict token has a probability of 1.0.
+
+Sampling scaled close to linearly up to 64 requests in flight with no throttling. Each request carries about 2.5 seconds of fixed time, so throughput comes from concurrency. Training runs in cycles of five to ten seconds at any batch size tested, so large batches and back-to-back submission (`TrainingRun.train_pipelined`) are what make it fast.
+
 ## Quickstart
 
-You need a Tinker API key and a Python 3.12 that `tml-renderers` has a wheel for. Version 0.5.0 publishes wheels for Apple-silicon macOS and for Linux, and none for Intel macOS, so on a Mac the interpreter must be an arm64 build. The commands below use [uv](https://docs.astral.sh/uv/) to fetch one.
+You need a Tinker API key and a Python 3.12 that `tml-renderers` has a wheel for. Tinker's pricing page says a prepaid account must hold a positive balance to use the free model ID, though calls to that ID are not charged. Version 0.5.0 publishes wheels for Apple-silicon macOS and for Linux, and none for Intel macOS, so on a Mac the interpreter must be an arm64 build. The commands below use [uv](https://docs.astral.sh/uv/) to fetch one.
 
 ```bash
 uv venv --python-preference only-managed --python 3.12 .venv
@@ -21,7 +31,7 @@ export TINKER_API_KEY="..."            # the key is read from the environment an
 .venv/bin/python -m pytest             # offline tests, no key needed
 .venv/bin/python -m posttrain_lab --help
 .venv/bin/python -m posttrain_lab smoke --dry-run   # planned calls and a token estimate, no API call
-.venv/bin/python -m posttrain_lab smoke             # about fifteen minutes, free
+.venv/bin/python -m posttrain_lab smoke             # about twenty minutes, free
 ```
 
 `requirements.txt` pins the three direct dependencies and `requirements.lock` pins everything that was installed alongside them.
@@ -45,7 +55,7 @@ These are fixed for the whole study.
 
 `posttrain_lab/backends/tinker_backend.py` is the only module that imports the Tinker SDK. `posttrain_lab/testing.py` has a fake renderer and backend, which is what the tests run on.
 
-Each step is a subcommand that follows one convention, defined in `posttrain_lab/steps/base.py`. A step reads a TOML config from `configs/`, plans its work as a list of units, and appends one row per finished unit to `runs/<step>/results.jsonl`, keyed by a hash of the unit's inputs. A rerun skips the units that are already there. Every step accepts `--dry-run`, which prints the planned call counts and a token estimate and calls nothing.
+Each step is a subcommand that follows one convention, defined in `posttrain_lab/steps/base.py`. A step reads a TOML config from `configs/`, plans its work as a list of units, and appends one row per finished unit to `runs/<step>/results.jsonl`, keyed by a hash of the unit's inputs. A rerun skips the units that are already there. Every step accepts `--dry-run`, which prints the planned call counts and a token estimate and calls nothing. `--fresh` runs units again even if their rows are stored, and `--only KIND` limits a run to one kind of unit.
 
 ## Where results live
 
