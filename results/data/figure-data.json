@@ -1,0 +1,287 @@
+{
+ "generated_at": "2026-11-27T02:12:29+00:00",
+ "four_cells": [
+  {
+   "cell": "easy",
+   "count": 3162,
+   "share": 0.2664,
+   "reasoning_reply_at_the_limit": 0
+  },
+  {
+   "cell": "middle",
+   "count": 6447,
+   "share": 0.5431,
+   "reasoning_reply_at_the_limit": 0
+  },
+  {
+   "cell": "hard",
+   "count": 2259,
+   "share": 0.1903,
+   "reasoning_reply_at_the_limit": 2139
+  },
+  {
+   "cell": "rare",
+   "count": 2,
+   "share": 0.0002,
+   "reasoning_reply_at_the_limit": 1
+  }
+ ],
+ "by_family": [
+  {
+   "family": "arithmetic",
+   "easy": 471,
+   "middle": 547,
+   "hard": 401,
+   "rare": 1
+  },
+  {
+   "family": "calendar",
+   "easy": 96,
+   "middle": 914,
+   "hard": 40,
+   "rare": 0
+  },
+  {
+   "family": "code_trace",
+   "easy": 54,
+   "middle": 683,
+   "hard": 453,
+   "rare": 0
+  },
+  {
+   "family": "counting",
+   "easy": 343,
+   "middle": 615,
+   "hard": 392,
+   "rare": 0
+  },
+  {
+   "family": "equations",
+   "easy": 31,
+   "middle": 619,
+   "hard": 269,
+   "rare": 1
+  },
+  {
+   "family": "number_theory",
+   "easy": 394,
+   "middle": 476,
+   "hard": 400,
+   "rare": 0
+  },
+  {
+   "family": "ordering",
+   "easy": 548,
+   "middle": 352,
+   "hard": 0,
+   "rare": 0
+  },
+  {
+   "family": "rates",
+   "easy": 223,
+   "middle": 527,
+   "hard": 0,
+   "rare": 0
+  },
+  {
+   "family": "sequence",
+   "easy": 123,
+   "middle": 793,
+   "hard": 304,
+   "rare": 0
+  },
+  {
+   "family": "stock_story",
+   "easy": 370,
+   "middle": 530,
+   "hard": 0,
+   "rare": 0
+  },
+  {
+   "family": "table",
+   "easy": 509,
+   "middle": 391,
+   "hard": 0,
+   "rare": 0
+  }
+ ],
+ "by_level": [
+  {
+   "level": "L1",
+   "easy": 2016,
+   "middle": 382,
+   "hard": 2,
+   "rare": 0
+  },
+  {
+   "level": "L2",
+   "easy": 517,
+   "middle": 833,
+   "hard": 0,
+   "rare": 0
+  },
+  {
+   "level": "L3",
+   "easy": 375,
+   "middle": 1271,
+   "hard": 3,
+   "rare": 1
+  },
+  {
+   "level": "L4",
+   "easy": 199,
+   "middle": 1444,
+   "hard": 7,
+   "rare": 0
+  },
+  {
+   "level": "L5",
+   "easy": 53,
+   "middle": 1541,
+   "hard": 56,
+   "rare": 0
+  },
+  {
+   "level": "L6",
+   "easy": 1,
+   "middle": 596,
+   "hard": 552,
+   "rare": 1
+  },
+  {
+   "level": "L7",
+   "easy": 1,
+   "middle": 380,
+   "hard": 1639,
+   "rare": 0
+  }
+ ],
+ "sets": [
+  {
+   "set": "middle-250",
+   "n_items": 250,
+   "train_tokens": 29248,
+   "from_easy": 0,
+   "from_middle": 250,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-250",
+   "n_items": 274,
+   "train_tokens": 29214,
+   "from_easy": 73,
+   "from_middle": 132,
+   "from_hard": 69,
+   "from_rare": 0
+  },
+  {
+   "set": "middle-500",
+   "n_items": 500,
+   "train_tokens": 56595,
+   "from_easy": 0,
+   "from_middle": 500,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-500",
+   "n_items": 537,
+   "train_tokens": 56601,
+   "from_easy": 145,
+   "from_middle": 272,
+   "from_hard": 120,
+   "from_rare": 0
+  },
+  {
+   "set": "middle-1000",
+   "n_items": 1000,
+   "train_tokens": 112139,
+   "from_easy": 0,
+   "from_middle": 1000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-1000",
+   "n_items": 1096,
+   "train_tokens": 112079,
+   "from_easy": 313,
+   "from_middle": 557,
+   "from_hard": 226,
+   "from_rare": 0
+  },
+  {
+   "set": "middle-2000",
+   "n_items": 2000,
+   "train_tokens": 221061,
+   "from_easy": 0,
+   "from_middle": 2000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-2000",
+   "n_items": 2164,
+   "train_tokens": 221007,
+   "from_easy": 610,
+   "from_middle": 1111,
+   "from_hard": 443,
+   "from_rare": 0
+  },
+  {
+   "set": "middle-4000",
+   "n_items": 4000,
+   "train_tokens": 435137,
+   "from_easy": 0,
+   "from_middle": 4000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-4000",
+   "n_items": 4301,
+   "train_tokens": 435090,
+   "from_easy": 1224,
+   "from_middle": 2234,
+   "from_hard": 843,
+   "from_rare": 0
+  },
+  {
+   "set": "easy-2000",
+   "n_items": 2865,
+   "train_tokens": 221081,
+   "from_easy": 2865,
+   "from_middle": 0,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "hard-2000",
+   "n_items": 1949,
+   "train_tokens": 221087,
+   "from_easy": 0,
+   "from_middle": 0,
+   "from_hard": 1949,
+   "from_rare": 0
+  },
+  {
+   "set": "shuffled-labels-2000",
+   "n_items": 2000,
+   "train_tokens": 221061,
+   "from_easy": 0,
+   "from_middle": 2000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "length-matched-random-2000",
+   "n_items": 2000,
+   "train_tokens": 221061,
+   "from_easy": 350,
+   "from_middle": 1436,
+   "from_hard": 213,
+   "from_rare": 1
+  }
+ ]
+}

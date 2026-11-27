@@ -78,6 +78,7 @@ class Filter(Survey):
                     "fast_right": fast["score"] == 1.0,
                     "reasoning_right": reasoning["score"] == 1.0,
                     "fast_completion_tokens": fast["completion_tokens"],
+                    "fast_cut_off": bool(fast.get("cut_off")),
                     "reasoning_completion_tokens": reasoning["completion_tokens"],
                     "reasoning_thinking_tokens": reasoning["thinking_tokens"],
                     "reasoning_cut_off": bool(reasoning.get("cut_off")),
@@ -87,6 +88,8 @@ class Filter(Survey):
         (ctx.runs_dir / "items.jsonl").write_text("".join(json.dumps(row) + "\n" for row in labeled), encoding="utf-8")
         built = build_sets(labeled, seed=ctx.config.get("seed", 0), dev_per_cell=ctx.config.get("dev_per_cell", 100), pilot_items=ctx.config.get("pilot_items", 0), sizes=tuple(ctx.config.get("sizes", SIZES)), main_size=ctx.config.get("main_size", MAIN_SIZE))
         calls = list(read_jsonl(ctx.runs_dir / "calls.jsonl"))
+        stored = {row.get("item") for row in read_jsonl(ctx.runs_dir / "results.jsonl")}
+        ctx.scratch["left_out"] = len({item_id for item_id in stored if item_id and item_id not in items})
         summary = build_summary(ctx, labeled, built, calls, len(items))
         write_outputs(ctx.results_dir.parent / "data", labeled, built, summary)
         ctx.out(f"{len(labeled):,} items labeled: " + ", ".join(f"{cell} {summary['cells']['overall'][cell]['count']:,}" for cell in CELLS))
@@ -135,6 +138,19 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
                 for f in families
             },
         },
+        "cut_offs": {
+            "fast": {
+                "limit": Candidates.max_tokens_fast,
+                "total": sum(1 for r in labeled if r["fast_cut_off"]),
+                "graded_right": sum(1 for r in labeled if r["fast_cut_off"] and r["fast_right"]),
+                "by_cell": {cell: sum(1 for r in labeled if r["fast_cut_off"] and r["cell"] == cell) for cell in CELLS},
+            },
+            "reasoning": {
+                "limit": Candidates.max_tokens_slow,
+                "total": sum(1 for r in labeled if r["reasoning_cut_off"]),
+                "by_cell": {cell: sum(1 for r in labeled if r["reasoning_cut_off"] and r["cell"] == cell) for cell in CELLS},
+            },
+        },
         "accuracy": {
             "fast": round(sum(r["fast_right"] for r in labeled) / max(len(labeled), 1), 4),
             "reasoning": round(sum(r["reasoning_right"] for r in labeled) / max(len(labeled), 1), 4),
@@ -153,7 +169,7 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         "prompt_examples": [{"id": i, "family": by_id[i]["family"], "level": by_id[i]["level"]} for i in built["prompt_examples"]],
         "available_after_holding_out": built["available"],
         "targets": {"middle": max(ctx.config.get("sizes", SIZES)), "easy": ctx.config.get("main_size", MAIN_SIZE), "hard": ctx.config.get("main_size", MAIN_SIZE)},
-        "cut": what_was_cut(ctx.scratch.get("build_summary", {}), candidates, labeled, built),
+        "cut": what_was_cut(ctx.scratch.get("build_summary", {}), candidates, labeled, built, ctx.scratch.get("left_out", 0)),
         "usage": {
             "api_calls": len(sampled),
             "prompt_tokens": sum(c["prompt_tokens"] for c in sampled),
@@ -169,7 +185,7 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
     }
 
 
-def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict) -> list[dict]:
+def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict, left_out: int = 0) -> list[dict]:
     """Everything that was generated or asked for and is not in a training set, with the reason."""
     leak = build.get("leak_check", {})
     cut = [{"what": "repeated problems", "count": build.get("repeats_skipped", 0), "why": "the generator produced a problem it had already produced, which happens at the lowest levels where there are few distinct problems"}]
@@ -185,6 +201,8 @@ def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict)
     empty = [f"{family} level {level}" for family, counts in build.get("requested", {}).items() for level, count in enumerate(counts, 1) if not count]
     if empty:
         cut.append({"what": "levels with no candidates", "count": 0, "why": "stock_story, rates and ordering have no generator above level 5, and the table family stops at level 5 because its longer tables run to 500 training tokens and more per item", "levels": empty})
+    if left_out:
+        cut.append({"what": "problems that were run and then left out", "count": left_out, "why": "the candidate counts were cut back after the run, for the reason given beside the counts in `configs/build-data.toml`"})
     cut.append({"what": "candidates without a reply in both settings", "count": candidates - len(labeled), "why": "a call failed and stays pending"})
     cut.append({"what": "held out of every training set", "count": built["held_out"], "why": "dev items for sanity checks, the slice the rank and learning rate pilot trains on, and the worked examples for the prompt-only arm"})
     rare = sum(1 for row in labeled if row["cell"] == "rare")
@@ -196,7 +214,7 @@ def figure_data(summary: dict) -> dict:
     cells = summary["cells"]
     return {
         "generated_at": summary["generated_at"],
-        "four_cells": [{"cell": cell, **cells["overall"][cell]} for cell in CELLS],
+        "four_cells": [{"cell": cell, **cells["overall"][cell], "reasoning_reply_at_the_limit": summary["cut_offs"]["reasoning"]["by_cell"][cell]} for cell in CELLS],
         "by_family": [{"family": family, **{cell: row[cell]["count"] for cell in CELLS}} for family, row in cells["by_family"].items()],
         "by_level": [{"level": level, **{cell: row[cell]["count"] for cell in CELLS}} for level, row in cells["by_level"].items()],
         "sets": [{"set": name, "n_items": s["n_items"], "train_tokens": s["train_tokens"], **{f"from_{cell}": s["cells"][cell] for cell in CELLS}} for name, s in summary["sets"].items()],
@@ -271,6 +289,15 @@ def render_report(summary: dict) -> str:
     for level, row in cells["by_level"].items():
         total = sum(row[cell]["count"] for cell in CELLS)
         add(f"| {level[1:]} | {total:,} | " + " | ".join(f"{row[cell]['count']:,} ({row[cell]['share']:.0%})" for cell in CELLS) + " |")
+    cut = summary["cut_offs"]
+    hard = o["hard"]["count"]
+    add("")
+    add(
+        f"What the hard cell holds matters for anything trained on it. Of its {hard:,} items, {cut['reasoning']['by_cell']['hard']:,} are there because the reasoning reply "
+        f"reached the {cut['reasoning']['limit']:,}-token limit before it gave an answer, and {hard - cut['reasoning']['by_cell']['hard']:,} because a finished reply was wrong. "
+        f"In the fast setting {cut['fast']['total']:,} replies ran to the {cut['fast']['limit']}-token limit, where the model wrote out working in place of an answer. "
+        f"They are graded on what they wrote, and {cut['fast']['graded_right']} of them gave the right answer first."
+    )
     want, have = summary["targets"], summary["available_after_holding_out"]
     short = [f"{cell} has {have[cell]:,} of the {want[cell]:,} items wanted" for cell in want if have[cell] < want[cell]]
     short += [f"the set {name} has {s['train_tokens']:,} of the {s['token_budget']:,} tokens it should match" for name, s in summary["sets"].items() if s.get("short")]
