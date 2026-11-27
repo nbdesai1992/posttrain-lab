@@ -1,0 +1,115 @@
+# The planned runs for the first training target, reasoning without the wait.
+#
+# Every run trains one LoRA adapter on one saved set from results/data/sets.json, with
+# examples rendered for the fast setting and the answer alone as the target. Rank and
+# learning rate were fixed by the pilot (configs/train-pilot.toml) and are the same
+# for every run. Updates are sized in training tokens, so sets that are matched on
+# tokens get the same number of updates: 252 at the size of 2,000 middle-band items.
+# The learning rate falls linearly to zero over a run.
+#
+# A seed changes the adapter's starting weights and the order of the batches. The
+# items in a set do not change with it.
+
+model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
+seed = 1
+rank = 16
+learning_rate = 1.8e-4
+tokens_per_update = 3500                # about 32 middle-band items
+epochs = 4
+updates_per_call = 16
+checkpoint_ttl_days = 30                # one sampler checkpoint per run, and no others
+max_checkpoints = 90                    # the service stores at most 100 per organisation
+
+[client]
+max_concurrency = 16
+call_timeout_s = 1800
+
+[[runs]]
+name = "middle-2000-s1"
+set = "middle-2000"
+seed = 1
+
+[[runs]]
+name = "middle-2000-s2"
+set = "middle-2000"
+seed = 2
+
+[[runs]]
+name = "middle-2000-s3"
+set = "middle-2000"
+seed = 3
+
+[[runs]]
+name = "random-2000-s1"
+set = "random-2000"
+seed = 1
+
+[[runs]]
+name = "random-2000-s2"
+set = "random-2000"
+seed = 2
+
+[[runs]]
+name = "random-2000-s3"
+set = "random-2000"
+seed = 3
+
+[[runs]]
+name = "easy-2000"
+set = "easy-2000"
+seed = 1
+
+[[runs]]
+name = "hard-2000"
+set = "hard-2000"
+seed = 1
+
+[[runs]]
+name = "shuffled-labels-2000"
+set = "shuffled-labels-2000"
+seed = 1
+
+[[runs]]
+name = "length-matched-random-2000"
+set = "length-matched-random-2000"
+seed = 1
+
+[[runs]]
+name = "middle-250"
+set = "middle-250"
+seed = 1
+
+[[runs]]
+name = "random-250"
+set = "random-250"
+seed = 1
+
+[[runs]]
+name = "middle-500"
+set = "middle-500"
+seed = 1
+
+[[runs]]
+name = "random-500"
+set = "random-500"
+seed = 1
+
+[[runs]]
+name = "middle-1000"
+set = "middle-1000"
+seed = 1
+
+[[runs]]
+name = "random-1000"
+set = "random-1000"
+seed = 1
+
+[[runs]]
+name = "middle-4000"
+set = "middle-4000"
+seed = 1
+
+[[runs]]
+name = "random-4000"
+set = "random-4000"
+seed = 1

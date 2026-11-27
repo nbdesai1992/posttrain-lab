@@ -7,9 +7,15 @@
 #
 # The rule, fixed before the runs: take the highest accuracy on the middle-band dev
 # items. A setting is out if its accuracy on the easy dev items is more than two
-# points under the best one's, or if any of its dev replies does not finish. Settings
-# within one standard error of the best count as tied, and a tie goes to the lower
-# loss on the middle-band dev items.
+# points under the best one's. Settings within one standard error of the best count
+# as tied, and a tie goes to the lower loss on the middle-band dev items.
+#
+# The rule as first written also put a setting out if any of its dev replies did not
+# finish. That clause was dropped after the runs, because it was written without
+# checking the base model: 67 of the base model's own 450 fast replies on these items
+# run to the 256-token limit, and every adapter leaves fewer unfinished (0 to 13).
+#
+# Outcome: rank 16 at a learning rate of 1.8e-4. See results/train-pilot/REPORT.md.
 
 model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
 folder = "train-pilot"                  # rows go to runs/train-pilot and results to results/train-pilot

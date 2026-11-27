@@ -4,9 +4,9 @@ This repository holds a post-training study of Inkling 2 Mini, a small open-weig
 
 ## Status
 
-The smoke test and the survey ran on 2026-11-26, and the survey includes a full pass in the reasoning setting, which is the study's reference. The training data for the first target, reasoning without the wait, was generated, checked for leaks and labeled on 2026-11-27. The `train` and `eval` steps are written and tested, and no adapter from the planned runs exists yet. The `report` step prints "not implemented yet".
+The smoke test and the survey ran on 2026-11-26, and the survey includes a full pass in the reasoning setting, which is the study's reference. The training data for the first target, reasoning without the wait, was generated, checked for leaks and labeled on 2026-11-27. A pilot of six short runs on held-out generated items then fixed the LoRA rank at 16 and the learning rate at 1.8e-4. The 18 planned training runs in `configs/train.toml` and their evaluation have not started. The `report` step prints "not implemented yet".
 
-The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md), [results/survey/REPORT.md](results/survey/REPORT.md) and [results/data/REPORT.md](results/data/REPORT.md), with the full data in the `summary.json` next to each.
+The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md), [results/survey/REPORT.md](results/survey/REPORT.md), [results/data/REPORT.md](results/data/REPORT.md) and [results/train-pilot/REPORT.md](results/train-pilot/REPORT.md), with the full data in the JSON file next to each.
 
 ## What the survey found
 
@@ -87,7 +87,9 @@ caffeinate -i .venv/bin/python -m posttrain_lab survey   # about four hours, fre
 
 .venv/bin/python -m posttrain_lab build-data             # a minute, no API call: generates problems and runs the leak check
 caffeinate -i .venv/bin/python -m posttrain_lab filter   # runs every problem in both settings and builds the training sets
-.venv/bin/python -m posttrain_lab train --config configs/train-pilot.toml   # five short runs that fix rank and learning rate
+.venv/bin/python -m posttrain_lab train --config configs/train-pilot.toml   # six short runs that fix rank and learning rate
+caffeinate -i .venv/bin/python -m posttrain_lab train    # the 18 planned runs, one adapter each
+caffeinate -i .venv/bin/python -m posttrain_lab eval     # every adapter against the base model on the benchmarks
 ```
 
 `build-data` reads the benchmark files the survey downloaded, so the survey's sources must be in place first. `train` reads the committed sets in `results/data/`, so the filter does not have to be rerun to train on the same items.

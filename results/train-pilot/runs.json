@@ -1,0 +1,307 @@
+{
+ "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+ "runs": [
+  {
+   "name": "pilot-r16-lr1.8e-4",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "train_seconds": 781.1,
+   "seconds_per_update": 12.2,
+   "run_seconds": 1010.5,
+   "loss_first": 3.34487,
+   "loss_last": 1.75184,
+   "tinker_path": "tinker://de2c0255-a0fa-5492-80b9-461292ce49b4:train:0/sampler_weights/pilot-r16-lr1.8e-4-20261127-022755",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-11-29T02:28:05.692202+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.27111,
+    "middle": 2.39967,
+    "hard": 4.77731
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0,
+    "middle": 0.1267
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 717,
+   "dev_unfinished_replies": 13,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T02:30:13+00:00"
+  },
+  {
+   "name": "pilot-r16-lr5.4e-4",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 16,
+   "learning_rate": 0.00054,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "train_seconds": 581.9,
+   "seconds_per_update": 9.09,
+   "run_seconds": 843.9,
+   "loss_first": 3.34487,
+   "loss_last": 1.1359,
+   "tinker_path": "tinker://de2c0255-a0fa-5492-80b9-461292ce49b4:train:1/sampler_weights/pilot-r16-lr5.4e-4-20261127-024254",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-11-29T02:43:06.396986+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.43815,
+    "middle": 3.32704,
+    "hard": 7.12191
+   },
+   "dev_accuracy": {
+    "easy": 0.8667,
+    "hard": 0.0067,
+    "middle": 0.1267
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 8,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T02:44:38+00:00"
+  },
+  {
+   "name": "pilot-r16-lr1.6e-3",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 16,
+   "learning_rate": 0.0016,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "tokens_per_update": null,
+   "items_per_update": 31.2,
+   "train_seconds": 759.9,
+   "seconds_per_update": 11.87,
+   "run_seconds": 988.0,
+   "loss_first": 3.34487,
+   "loss_last": 0.82691,
+   "tinker_path": "tinker://11fe5372-045c-5cea-81fa-58192b799fa7:train:0/sampler_weights/pilot-r16-lr1.6e-3-20261127-031537",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-11-29T03:15:50.636741+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.88764,
+    "middle": 4.22493,
+    "hard": 8.73824
+   },
+   "dev_accuracy": {
+    "easy": 0.7,
+    "hard": 0.0,
+    "middle": 0.0333
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 0,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T03:17:47+00:00",
+   "service_events": {}
+  },
+  {
+   "name": "pilot-r8-lr5.4e-4",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 8,
+   "learning_rate": 0.00054,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "tokens_per_update": null,
+   "items_per_update": 31.2,
+   "train_seconds": 466.6,
+   "seconds_per_update": 7.29,
+   "run_seconds": 750.4,
+   "loss_first": 3.34487,
+   "loss_last": 1.17148,
+   "tinker_path": "tinker://f9bdc096-f9f4-5993-a87b-cd6952bf1e51:train:0/sampler_weights/pilot-r8-lr5.4e-4-20261127-032810",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 8,
+    "size_bytes": 369442782,
+    "expires_at": "2026-11-29T03:28:27.877759+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.41153,
+    "middle": 3.19308,
+    "hard": 6.56768
+   },
+   "dev_accuracy": {
+    "easy": 0.8467,
+    "hard": 0.0067,
+    "middle": 0.1
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 1,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T03:30:49+00:00",
+   "service_events": {}
+  },
+  {
+   "name": "pilot-r32-lr5.4e-4",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 32,
+   "learning_rate": 0.00054,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "tokens_per_update": null,
+   "items_per_update": 31.2,
+   "train_seconds": 435.3,
+   "seconds_per_update": 6.8,
+   "run_seconds": 716.7,
+   "loss_first": 3.34487,
+   "loss_last": 1.07495,
+   "tinker_path": "tinker://98e03b10-a9b4-56e5-8d3f-01437b4dd741:train:0/sampler_weights/pilot-r32-lr5.4e-4-20261127-034134",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 32,
+    "size_bytes": 1477482988,
+    "expires_at": "2026-11-29T03:41:43.838497+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.43381,
+    "middle": 3.40162,
+    "hard": 6.66751
+   },
+   "dev_accuracy": {
+    "easy": 0.8733,
+    "hard": 0.0,
+    "middle": 0.12
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 4,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T03:43:15+00:00",
+   "service_events": {}
+  },
+  {
+   "name": "pilot-r16-lr6e-5",
+   "set": "pilot-train",
+   "seed": 20261126,
+   "rank": 16,
+   "learning_rate": 6e-05,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "c34eda2409a6",
+   "items": 500,
+   "set_train_tokens": 54925,
+   "train_tokens": 219700,
+   "updates": 64,
+   "tokens_per_update": null,
+   "items_per_update": 31.2,
+   "train_seconds": 475.4,
+   "seconds_per_update": 7.43,
+   "run_seconds": 810.0,
+   "loss_first": 3.34487,
+   "loss_last": 2.10471,
+   "tinker_path": "tinker://aeff8b75-29c5-508a-8f9d-249cba827fb5:train:0/sampler_weights/pilot-r16-lr6e-5-20261127-035437",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-11-29T03:54:43.778502+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 2,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.25618,
+    "middle": 2.23638,
+    "hard": 4.58516
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0,
+    "middle": 0.0867
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 11,
+   "loss_weighted_tokens": 1909,
+   "finished_at": "2026-11-27T03:57:12+00:00",
+   "service_events": {
+    "paused_rate_limit": 2
+   }
+  }
+ ]
+}
