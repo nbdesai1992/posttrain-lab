@@ -138,3 +138,7 @@ Each step is a subcommand that follows one convention, defined in `posttrain_lab
 `runs/` holds everything large or raw, and is not committed. That covers the response cache in `runs/cache/`, and for each step its result rows, its call log (`calls.jsonl`) and the service events it saw.
 
 `results/` holds the small summaries that are committed, one folder per step. `results/data/` also holds the labeled items and the training sets themselves, with a manifest of SHA-256 values, because they are small and every later step reads them.
+
+## License
+
+The code and the generated data are under the MIT license in [`LICENSE`](LICENSE). The public benchmarks keep their own licenses and are downloaded at run time, not stored here.
