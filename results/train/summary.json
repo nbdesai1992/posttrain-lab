@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T05:41:16+00:00",
+ "generated_at": "2026-11-27T06:23:33+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "settings": {
   "rank": 16,
@@ -30,10 +30,10 @@
  ],
  "complete": false,
  "first_run_started_at": "2026-11-27T04:11:46+00:00",
- "hours_since_first_start": 1.49,
+ "hours_since_first_start": 2.2,
  "now_training": {
-  "name": "middle-2000-s2",
-  "started_at": "2026-11-27T05:41:16+00:00"
+  "name": "random-2000-s2",
+  "started_at": "2026-11-27T06:23:33+00:00"
  },
  "runs": [
   {
@@ -187,35 +187,119 @@
    "finished_at": "2026-11-27T05:33:17+00:00",
    "service_events": {},
    "started_at": "2026-11-27T04:51:22+00:00"
+  },
+  {
+   "name": "middle-2000-s2",
+   "set": "middle-2000-draw2",
+   "seed": 2,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "6a99d554ea79",
+   "items": 2000,
+   "set_train_tokens": 220681,
+   "train_tokens": 882724,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.7,
+   "train_seconds": 2225.4,
+   "seconds_per_update": 8.83,
+   "median_seconds_per_update": 6.02,
+   "run_seconds": 2521.5,
+   "stalls": {
+    "updates": 5,
+    "seconds": 429.2,
+    "longest_s": 164.7
+   },
+   "loss_first": 3.50978,
+   "loss_last": 1.67776,
+   "group_losses": [
+    2.48064,
+    2.349,
+    2.36641,
+    2.17468,
+    2.04574,
+    2.15412,
+    2.22372,
+    2.04489,
+    1.97241,
+    1.80094,
+    1.91016,
+    1.78346,
+    1.69191,
+    1.66112,
+    1.67389,
+    1.69686
+   ],
+   "tinker_path": "tinker://fad373a6-d32c-506f-b552-e69d707d0a98:train:0/sampler_weights/middle-2000-s2-20261127-062144",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T06:21:58.178846+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.28523,
+    "middle": 2.40612,
+    "hard": 5.25455
+   },
+   "dev_accuracy": {
+    "easy": 0.88,
+    "hard": 0.0,
+    "middle": 0.14
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 0,
+   "loss_weighted_tokens": 7798,
+   "finished_at": "2026-11-27T06:23:26+00:00",
+   "service_events": {
+    "paused_rate_limit": 2
+   },
+   "started_at": "2026-11-27T05:41:24+00:00"
   }
  ],
  "totals": {
-  "runs": 2,
-  "updates": 504,
-  "train_tokens": 1768272,
-  "update_hours": 1.22,
-  "run_hours": 1.36,
-  "seconds_per_update": 8.72,
-  "stalled_updates": 17,
-  "stalled_seconds": 1230.4,
-  "queue_events": {},
-  "checkpoint_bytes": 1477579518
+  "runs": 3,
+  "updates": 756,
+  "train_tokens": 2650996,
+  "update_hours": 1.84,
+  "run_hours": 2.06,
+  "seconds_per_update": 8.76,
+  "stalled_updates": 22,
+  "stalled_seconds": 1659.6,
+  "queue_events": {
+   "paused_rate_limit": 2
+  },
+  "checkpoint_bytes": 2216369286
  },
  "overlap_with_evaluation": {
   "alone": {
-   "updates": 280,
+   "updates": 344,
    "median_s": 5.89,
-   "mean_s": 7.76
+   "mean_s": 7.96
   },
   "while_evaluating": {
-   "updates": 224,
-   "median_s": 5.6,
-   "mean_s": 9.92
+   "updates": 412,
+   "median_s": 5.77,
+   "mean_s": 9.42
   },
-  "median_ratio": 0.95,
-  "mean_ratio": 1.28
+  "median_ratio": 0.98,
+  "mean_ratio": 1.18
  },
  "failures": [],
+ "notes": [
+  "Adapters are evaluated while later runs train, at 16 requests in flight. The evaluation first ran at 32 in flight, from 04:27 to 05:10 UTC on 2026-11-27, for the prompt-only state and the main adapter's fast pass. Over that stretch an update took 9.9 s on average, against 8.0 s for the 344 updates made without it up to 05:53 UTC. That is 24% slower, with an interval from 8% faster to 67% slower when groups of 16 updates are resampled. The median update did not change, and the service reported no rate-limit pause during updates. The evaluation was stopped from 05:10 to 05:56 UTC to measure training alone, and then started again at half the concurrency. It goes back to after training if 500 or more updates made beside it average more than a quarter above 8.0 s, or if the service reports a rate-limit pause during updates.",
+  "Every run trains in its own process. The third run started in the first process sat in the service's queue for seven minutes, with `paused_rate_limit` reported 13 times and no update made, as the third pilot run had. The process was stopped at 05:41 UTC and the run began two minutes into a fresh one. A run still waits about two minutes in the queue before its first update."
+ ],
  "evaluation_status": {
   "at": "2026-11-27T04:50:59+00:00",
   "states": {
