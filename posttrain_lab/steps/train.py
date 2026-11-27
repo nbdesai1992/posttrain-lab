@@ -102,6 +102,10 @@ def now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class LeftForTheNextProcess(Exception):
+    """This process has trained as many runs as it may. The run stays pending."""
+
+
 class Train(Step):
     name = "train"
     summary = "Train LoRA adapters on the free model ID"
@@ -139,6 +143,12 @@ class Train(Step):
 
     async def run_unit(self, unit: Unit, ctx: StepContext) -> dict:
         p = unit.params
+        # The service makes a third training client from one process wait for a long time,
+        # whatever is done to the first two, so a config can cap the runs per process.
+        limit = ctx.config.get("runs_per_process", 0)
+        if limit and ctx.scratch.get("started", 0) >= limit:
+            raise LeftForTheNextProcess(f"{p['name']} is left for the next process")
+        ctx.scratch["started"] = ctx.scratch.get("started", 0) + 1
         ctx.out(f"run {unit.label}")
         ctx.scratch["now"] = {"name": p["name"], "started_at": now().isoformat(timespec="seconds")}
         write_outputs(ctx, self._stored(ctx))
@@ -380,7 +390,7 @@ def render_progress(summary: dict) -> str:
     lines = ["# Training progress", ""]
     current = summary.get("now_training")
     lines.append(
-        f"Updated {summary['generated_at'][:16].replace('T', ' ')} UTC. {len(runs)} of {len(planned)} runs are done, "
+        f"Updated {summary['generated_at'][:16].replace('T', ' ')} UTC. {len(runs)} of {len(planned)} runs {'is' if len(runs) == 1 else 'are'} done, "
         f"{summary['hours_since_first_start']} hours after the first one started. "
         + (f"Training now: {current['name']}, since {current['started_at'][11:16]} UTC." if current else ("All runs are done." if summary["complete"] else "No run is training at the moment."))
     )

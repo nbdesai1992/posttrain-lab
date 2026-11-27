@@ -24,6 +24,7 @@ epochs = 4
 updates_per_call = 16
 checkpoint_ttl_days = 30                # one sampler checkpoint per run, and no others
 max_checkpoints = 90                    # the service stores at most 100 per organisation
+runs_per_process = 1                    # a third training client from one process waits in the queue for a long time; scripts/train_all.sh starts a process per run
 
 [client]
 max_concurrency = 16

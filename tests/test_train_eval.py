@@ -160,6 +160,17 @@ def test_a_run_that_fails_leaves_the_others_to_finish(tmp_path, renderer, make_c
     assert summary["complete"] and [r["name"] for r in summary["runs"]] == [r["name"] for r in RUNS]
 
 
+def test_a_process_can_be_limited_to_one_run(tmp_path, renderer, make_client, data_dir):
+    config = {"data_dir": str(data_dir), "runs": RUNS, "batch_size": 4, "epochs": 1, "runs_per_process": 1}
+    for done in (1, 2, 3):
+        backend = FakeBackend(renderer)
+        client, _ = make_client(backend)
+        ctx, lines = context(tmp_path, renderer, "train", client, **config)
+        assert run(run_step(Train(), ctx)) == (0 if done == 3 else 1) and backend.training_calls.count("create") == 1
+        summary = json.loads((ctx.results_dir / "summary.json").read_text())
+        assert [r["name"] for r in summary["runs"]] == [r["name"] for r in RUNS[:done]] and summary["failures"] == []
+
+
 def test_a_group_of_updates_sent_twice_or_a_rising_loss_ends_the_run(tmp_path, renderer, make_client, data_dir):
     class Hiccup(FakeBackend):
         async def train_pipelined(self, run_handle, batches, learning_rate):

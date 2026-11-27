@@ -470,7 +470,7 @@ def decide(summary: dict) -> list[dict]:
         fallen = [cell for cell in summary["watch_cells"] if cell["regression"]]
         if fallen:
             listed = "; ".join(f"{titles[cell['benchmark']]} {points(cell['difference'])}" for cell in fallen)
-            add("P5", None, "wrong", f"P5: wrong. {len(fallen)} of {len(summary['watch_cells'])} watch cells fall by more than {REGRESSION_POINTS:g} points under the main adapter: {listed}.")
+            add("P5", None, "wrong", f"P5: wrong. {len(fallen)} of {len(summary['watch_cells'])} watch cells {'falls' if len(fallen) == 1 else 'fall'} by more than {REGRESSION_POINTS:g} points under the main adapter: {listed}.")
         else:
             add("P5", None, "holds", f"P5: holds. None of the {len(summary['watch_cells'])} watch cells falls by more than {REGRESSION_POINTS:g} points under the main adapter.")
     return out
