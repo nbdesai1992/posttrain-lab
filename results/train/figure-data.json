@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T04:51:13+00:00",
+ "generated_at": "2026-11-27T05:33:17+00:00",
  "runs": [
   {
    "run": "middle-2000-s1",
@@ -36,20 +36,56 @@
     "middle": 0.1933
    },
    "stalled_seconds": 588.5
+  },
+  {
+   "run": "random-2000-s1",
+   "set": "random-2000",
+   "seed": 1,
+   "items": 2164,
+   "train_tokens": 884028,
+   "updates": 252,
+   "minutes": 41.9,
+   "seconds_per_update": 8.91,
+   "loss_by_group_of_updates": [
+    2.61863,
+    2.6581,
+    2.55734,
+    2.49031,
+    2.54087,
+    2.34531,
+    2.46721,
+    2.2791,
+    2.24256,
+    2.20964,
+    2.28789,
+    2.20894,
+    1.96827,
+    2.2094,
+    1.97793,
+    2.18291
+   ],
+   "loss_first": 3.66309,
+   "loss_last": 2.08994,
+   "dev_accuracy": {
+    "easy": 0.88,
+    "hard": 0.0,
+    "middle": 0.14
+   },
+   "stalled_seconds": 641.9
   }
  ],
  "overlap_with_evaluation": {
   "alone": {
-   "updates": 140,
-   "median_s": 5.96,
-   "mean_s": 7.4
+   "updates": 280,
+   "median_s": 5.89,
+   "mean_s": 7.76
   },
   "while_evaluating": {
-   "updates": 112,
-   "median_s": 5.55,
-   "mean_s": 9.93
+   "updates": 224,
+   "median_s": 5.6,
+   "mean_s": 9.92
   },
-  "median_ratio": 0.93,
-  "mean_ratio": 1.34
+  "median_ratio": 0.95,
+  "mean_ratio": 1.28
  }
 }
