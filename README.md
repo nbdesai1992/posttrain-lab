@@ -56,6 +56,8 @@ The middle band is where reasoning helps, and it is the data the main training a
 
 The training sets are drawn with fixed seeds and saved as lists of item ids in `results/data/sets.json`. Sets that are compared with each other are matched on training tokens. There are middle-band sets of 250, 500, 1,000, 2,000 and 4,000 items, each inside the next, and random draws from all cells with the same token counts. At the size of the 2,000-item middle-band set there are also an easy-only set, a hard-only set, a copy of the middle-band set with its answers moved between items, and a random set matched item by item on length. Held out of all of them are 150 dev items from each cell, 500 middle-band items for the pilot that fixes rank and learning rate, and eight worked examples for a prompt-only arm. A training example is the prompt followed by the answer alone, rendered for the fast setting.
 
+[`docs/training-recipe.md`](docs/training-recipe.md) states the full training recipe in one place: what is trained on and what is only scored, an example as the model sees it, every set, the LoRA and optimizer settings, and why a run takes about 40 minutes.
+
 ## What the smoke test found
 
 The smoke test came first and shaped how the survey was run.
