@@ -4,7 +4,7 @@ This repository holds a post-training study of Inkling 2 Mini, a small open-weig
 
 ## Status
 
-The smoke test and the survey have run, both on 2026-11-26. The later steps (`build-data`, `filter`, `train`, `eval`, `report`) are registered as subcommands and print "not implemented yet".
+The smoke test and the survey ran on 2026-11-26, and the survey now includes a full pass in the reasoning setting, which is the study's reference. The data build and the filter for the first training target are in progress. The `train` and `eval` steps are written and tested offline, and no adapter from the planned runs exists yet. The `report` step prints "not implemented yet".
 
 The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md) and [results/survey/REPORT.md](results/survey/REPORT.md), with the full data in the `summary.json` next to each.
 
