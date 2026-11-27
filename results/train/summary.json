@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T05:33:17+00:00",
+ "generated_at": "2026-11-27T05:41:16+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "settings": {
   "rank": 16,
@@ -30,10 +30,10 @@
  ],
  "complete": false,
  "first_run_started_at": "2026-11-27T04:11:46+00:00",
- "hours_since_first_start": 1.36,
+ "hours_since_first_start": 1.49,
  "now_training": {
   "name": "middle-2000-s2",
-  "started_at": "2026-11-27T05:33:17+00:00"
+  "started_at": "2026-11-27T05:41:16+00:00"
  },
  "runs": [
   {

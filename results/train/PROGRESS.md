@@ -1,6 +1,6 @@
 # Training progress
 
-Updated 2026-11-27 05:33 UTC. 2 of 18 runs are done, 1.36 hours after the first one started. Training now: middle-2000-s2, since 05:33 UTC.
+Updated 2026-11-27 05:41 UTC. 2 of 18 runs are done, 1.49 hours after the first one started. Training now: middle-2000-s2, since 05:41 UTC.
 
 | run | updates | minutes | s per update | final loss | dev middle | dev easy | dev hard | stalls and pauses |
 |---|---|---|---|---|---|---|---|---|
@@ -14,3 +14,5 @@ Anything unusual: updates took a median of 5.6 s while adapters were being evalu
 Evaluation, as of 2026-11-27 04:50 UTC: 3 states are complete (base, prompt-only, base-reasoning).
 
 Evaluation is running in series, after training. It overlapped training from 04:27 to 05:10 UTC at 32 requests in flight (the prompt-only state and the main adapter's fast pass). In that stretch updates averaged 9.9 s against 7.2 s alone, 37% slower, because stalls were more frequent and longer (the median update was unchanged at 5.6 s against 5.8 s, and the service reported no rate-limit pause). That is past the quarter that was allowed, so the evaluation was stopped at 05:10 UTC and will start again when the last run has finished. The main adapter's fast pass is complete: GSM8K 42.1 against 37.5 for the base model, MBPP 85.6 against 82.1.
+
+Training now starts a new process for every run. The third run started in the first process sat in the service's queue for seven minutes with `paused_rate_limit` reported 13 times and no update made, as the third pilot run had. The process was stopped at 05:41 UTC and the run began two minutes into a fresh one. Each run still waits about two minutes in the queue before its first update.
