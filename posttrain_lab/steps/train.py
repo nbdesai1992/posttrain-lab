@@ -370,6 +370,7 @@ def build_summary(ctx: StepContext, rows: list[dict]) -> dict:
         },
         "overlap_with_evaluation": overlap_check(progress),
         "failures": failures,
+        "notes": list(ctx.config.get("notes", [])),
         "evaluation_status": json.loads(status_file.read_text()) if status_file.exists() else None,
     }
 
@@ -413,6 +414,8 @@ def render_progress(summary: dict) -> str:
             f"and {overlap['alone']['median_s']} s otherwise ({overlap['alone']['updates']} updates); the means were {overlap['while_evaluating']['mean_s']} s and {overlap['alone']['mean_s']} s"
         )
     lines += ["", "Anything unusual: " + ("; ".join(unusual) + "." if unusual else "nothing beyond the stalls and pauses in the table.")]
+    for note in summary.get("notes", []):
+        lines += ["", note]
     status = summary.get("evaluation_status")
     if status:
         done = [name for name, state in status.get("states", {}).items() if state["done"] >= state["of"]]
@@ -470,6 +473,8 @@ def render_report(summary: dict) -> str:
         lines += ["", f"Adapters were evaluated by a second process while later runs trained. Updates took a median of {overlap['while_evaluating']['median_s']} s "
                   f"(mean {overlap['while_evaluating']['mean_s']} s, {overlap['while_evaluating']['updates']:,} updates) while that process was working and {overlap['alone']['median_s']} s "
                   f"(mean {overlap['alone']['mean_s']} s, {overlap['alone']['updates']:,} updates) while it was not."]
+    for note in summary.get("notes", []):
+        lines += ["", note]
     if summary["failures"]:
         lines += ["", "Runs that failed and were started again:", ""]
         lines += [f"- {failure['run']} at {failure['at']}: {failure['error']}" for failure in summary["failures"]]

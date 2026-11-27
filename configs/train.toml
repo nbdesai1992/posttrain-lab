@@ -26,6 +26,12 @@ checkpoint_ttl_days = 30                # one sampler checkpoint per run, and no
 max_checkpoints = 90                    # the service stores at most 100 per organisation
 runs_per_process = 1                    # a third training client from one process waits in the queue for a long time; scripts/train_all.sh starts a process per run
 
+# What happened while the runs trained, for PROGRESS.md and the report.
+notes = [
+    "Evaluation runs after training, not beside it. It overlapped training from 04:27 to 05:10 UTC on 2026-11-27 at 32 requests in flight, for the prompt-only state and the main adapter's fast pass. In that stretch an update took 9.9 s on average against 7.2 s alone, 37% slower, because stalls were more frequent and longer. The median update was unchanged (5.6 s against 5.8 s) and the service reported no rate-limit pause during updates. The limit set beforehand was a quarter, so the evaluation was stopped at 05:10 UTC and starts again when the last run has finished.",
+    "Every run trains in its own process. The third run started in the first process sat in the service's queue for seven minutes, with `paused_rate_limit` reported 13 times and no update made, as the third pilot run had. The process was stopped at 05:41 UTC and the run began two minutes into a fresh one. A run still waits about two minutes in the queue before its first update.",
+]
+
 [client]
 max_concurrency = 16
 call_timeout_s = 1800
