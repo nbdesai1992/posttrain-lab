@@ -554,6 +554,22 @@ class TinkerBackend:
         snapshot["usage_estimated_cost_usd"] = sum(v["estimated_cost_usd"] for v in totals.values())
         return snapshot
 
+    async def new_session(self) -> None:
+        """Drop the SDK session, so the next client starts in a fresh one.
+
+        A training client that is opened while earlier ones from the same session are
+        still around waits in the service's queue, for minutes. Ending the session
+        after each training run avoids that.
+        """
+        async with self._lock:
+            service, self._service, self._samplers = self._service, None, {}
+        close = getattr(service, "close", None)
+        if close is not None:
+            try:
+                await asyncio.to_thread(close)
+            except Exception:
+                pass
+
     async def close(self) -> None:
         logging.getLogger("tinker").removeHandler(self._log_capture)
         if self in _PROBE_SINKS:

@@ -59,14 +59,29 @@ def fast_example(renderer, prompt: str, answer: str) -> tuple[list[int], list[fl
     return list(tokens), [0.0] * len(given) + [float(w) for w in weights[len(given) :]]
 
 
-def schedule(n_items: int, batch_size: int, epochs: int, seed: int) -> list[list[int]]:
-    """Batches of item positions: a fresh shuffle for every pass over the set."""
+def schedule(n_items: int, batch_size: int, epochs: int, seed: int, per_epoch: int | None = None) -> list[list[int]]:
+    """Batches of item positions: a fresh shuffle for every pass over the set.
+
+    With ``per_epoch`` each pass is cut into that many batches of nearly equal size,
+    so sets with the same training tokens get the same number of updates whatever
+    their item counts. Without it a batch is ``batch_size`` items.
+    """
     batches = []
     for epoch in range(epochs):
         order = list(range(n_items))
         random.Random(f"{seed}:{epoch}").shuffle(order)
-        batches += [order[start : start + batch_size] for start in range(0, n_items, batch_size)]
+        if per_epoch:
+            count = min(per_epoch, n_items)
+            edges = [round(index * n_items / count) for index in range(count + 1)]
+            batches += [order[edges[index] : edges[index + 1]] for index in range(count)]
+        else:
+            batches += [order[start : start + batch_size] for start in range(0, n_items, batch_size)]
     return batches
+
+
+def updates_per_epoch(set_tokens: int, tokens_per_update: int | None) -> int | None:
+    """How many updates one pass over a set gets when updates are sized in tokens."""
+    return max(1, round(set_tokens / tokens_per_update)) if tokens_per_update else None
 
 
 class Train(Step):
@@ -90,7 +105,10 @@ class Train(Step):
                 "name": run["name"], "set": run["set"], "seed": run.get("seed", ctx.config.get("seed", 0)), **settings,
                 "set_fingerprint": stable_hash([[row["id"], row["answer"]] for row in rows])[:12],
             }
-            updates = len(schedule(len(rows), settings["batch_size"], settings["epochs"], params["seed"]))
+            sized = run.get("tokens_per_update", ctx.config.get("tokens_per_update"))
+            if sized:  # updates sized in tokens, so token-matched sets get the same number of them
+                params["tokens_per_update"] = sized
+            updates = len(schedule(len(rows), settings["batch_size"], settings["epochs"], params["seed"], updates_per_epoch(tokens, sized)))
             units.append(Unit("run", params, calls=updates, training_tokens=tokens * settings["epochs"], label=f"{run['name']} ({len(rows):,} items, {updates} updates)"))
         return units
 
@@ -107,7 +125,8 @@ class Train(Step):
             raise AccountBlockedError(f"{stored} checkpoints are stored, at or over the limit this step allows itself. Let some expire or delete them.")
 
         examples = [fast_example(ctx.renderer, row["prompt"], row["answer"]) for row in rows]
-        batches = schedule(len(rows), p["batch_size"], p["epochs"], p["seed"])
+        per_epoch = updates_per_epoch(sum(row["train_tokens"] for row in rows), p.get("tokens_per_update"))
+        batches = schedule(len(rows), p["batch_size"], p["epochs"], p["seed"], per_epoch)
         rates = [p["learning_rate"] * (1 - step / len(batches)) for step in range(len(batches))]  # linear decay to zero
         started = time.monotonic()
         training = await client.create_training_run(rank=p["rank"], seed=p["seed"], tag=p["name"])
@@ -134,6 +153,25 @@ class Train(Step):
                 states[label] = states.get(label, 0) + 1
             events_seen = len(getattr(backend, "events", []))
 
+        async def watch_queue() -> None:
+            """Save queue events as they come, so a long wait can be read while it lasts."""
+            while True:
+                await asyncio.sleep(10)
+                note_events()
+
+        watcher = asyncio.ensure_future(watch_queue())
+        try:
+            row = await self._train(ctx, p, client, backend, training, rows, items, sets, examples, batches, rates, dev_loss, note_events, started)
+        finally:
+            watcher.cancel()
+            note_events()
+            # A fresh session for the next run: a second training client in one session waits in the queue.
+            if hasattr(backend, "new_session"):
+                await backend.new_session()
+        row["service_events"] = states
+        return row
+
+    async def _train(self, ctx, p, client, backend, training, rows, items, sets, examples, batches, rates, dev_loss, note_events, started) -> dict:
         dev_loss_before = await dev_loss()
         loop_started = time.monotonic()
         losses: list[float] = []
@@ -179,11 +217,12 @@ class Train(Step):
             "set_train_tokens": sum(len(tokens) for tokens, _ in examples),
             "train_tokens": sum(len(examples[i][0]) for batch in batches for i in batch),
             "updates": len(batches),
+            "tokens_per_update": p.get("tokens_per_update"),
+            "items_per_update": round(len(rows) * p["epochs"] / len(batches), 1),
             "train_seconds": round(loop_seconds, 1),
             "seconds_per_update": round(loop_seconds / len(batches), 2),
             "run_seconds": round(time.monotonic() - started, 1),  # with set-up, the save, the load and the dev replies
             "update_seconds": update_seconds,
-            "service_events": states,
             "loss_first": losses[0],
             "loss_last": round(sum(tail) / len(tail), 5),
             "losses": losses,

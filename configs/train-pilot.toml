@@ -53,3 +53,11 @@ name = "pilot-r32-lr5.4e-4"
 set = "pilot-train"
 rank = 32
 learning_rate = 5.4e-4
+
+# Added after the first three runs. The lowest of the three learning rates did best,
+# so one lower value is run to bracket it.
+[[runs]]
+name = "pilot-r16-lr6e-5"
+set = "pilot-train"
+rank = 16
+learning_rate = 6e-5

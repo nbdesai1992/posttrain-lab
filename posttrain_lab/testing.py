@@ -243,5 +243,8 @@ class FakeBackend:
     def fatal_condition(self) -> str | None:
         return self.fatal
 
+    async def new_session(self) -> None:
+        self.training_calls.append("new_session")
+
     async def close(self) -> None:
         pass

@@ -11,7 +11,7 @@ import pytest
 from posttrain_lab.data.sets import build_sets
 from posttrain_lab.steps.base import StepContext, run_step
 from posttrain_lab.steps.evaluate import Eval
-from posttrain_lab.steps.train import Train, fast_example, schedule, set_items
+from posttrain_lab.steps.train import Train, fast_example, schedule, set_items, updates_per_epoch
 from posttrain_lab.store import JsonlStore
 from posttrain_lab.testing import FakeBackend
 
@@ -52,6 +52,17 @@ def test_schedule_covers_every_item_once_per_pass():
     assert batches == schedule(10, 4, 3, seed=5)
 
 
+def test_updates_sized_in_tokens_give_token_matched_sets_the_same_number_of_updates():
+    assert updates_per_epoch(221_061, 3500) == updates_per_epoch(221_081, 3500) == 63 and updates_per_epoch(900, 3500) == 1
+    assert updates_per_epoch(221_061, None) is None
+    short, long = schedule(2000, 32, 4, seed=1, per_epoch=63), schedule(2865, 32, 4, seed=1, per_epoch=63)
+    assert len(short) == len(long) == 252
+    assert {len(b) for b in short} <= {31, 32} and {len(b) for b in long} <= {45, 46}
+    for batches, n in ((short, 2000), (long, 2865)):
+        assert all(sorted(i for b in batches[e * 63 : (e + 1) * 63] for i in b) == list(range(n)) for e in range(4))
+    assert len(schedule(5, 32, 2, seed=1, per_epoch=9)) == 10  # never more batches than items
+
+
 def test_train_records_each_run_and_decays_the_learning_rate(tmp_path, renderer, make_client, data_dir):
     def double(text):  # the fake adapter has learned the task
         return str(2 * int(text.split()[-3]))
@@ -77,6 +88,7 @@ def test_train_records_each_run_and_decays_the_learning_rate(tmp_path, renderer,
     assert main["loss_weighted_tokens"] == 30
     assert runs["wrong-labels"]["set_fingerprint"] != main["set_fingerprint"]
     assert backend.training_calls.count("create") == 3 and backend.training_calls.count("save") == 3
+    assert backend.training_calls.count("new_session") == 3 and backend.training_calls[-1] == "new_session"  # each run ends its session
     rates = backend.learning_rates[:6]
     assert rates[0] == 4e-4 and rates == sorted(rates, reverse=True) and 0 < rates[-1] < 1e-4
     # Examples are the prompt and the answer alone, and the shuffled set trains on moved answers.
