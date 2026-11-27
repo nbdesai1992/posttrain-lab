@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T06:23:33+00:00",
+ "generated_at": "2026-11-27T09:33:25+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "settings": {
   "rank": 16,
@@ -30,10 +30,10 @@
  ],
  "complete": false,
  "first_run_started_at": "2026-11-27T04:11:46+00:00",
- "hours_since_first_start": 2.2,
+ "hours_since_first_start": 5.36,
  "now_training": {
-  "name": "random-2000-s2",
-  "started_at": "2026-11-27T06:23:33+00:00"
+  "name": "easy-2000",
+  "started_at": "2026-11-27T09:33:25+00:00"
  },
  "runs": [
   {
@@ -265,35 +265,339 @@
     "paused_rate_limit": 2
    },
    "started_at": "2026-11-27T05:41:24+00:00"
+  },
+  {
+   "name": "random-2000-s2",
+   "set": "random-2000-draw2",
+   "seed": 2,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "02d9bcedc7c8",
+   "items": 2211,
+   "set_train_tokens": 220675,
+   "train_tokens": 882700,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 35.1,
+   "train_seconds": 3953.1,
+   "seconds_per_update": 15.69,
+   "median_seconds_per_update": 6.19,
+   "run_seconds": 4175.1,
+   "stalls": {
+    "updates": 20,
+    "seconds": 2199.6,
+    "longest_s": 435.7
+   },
+   "loss_first": 2.61364,
+   "loss_last": 1.99684,
+   "group_losses": [
+    2.79855,
+    2.34386,
+    2.45705,
+    2.73191,
+    2.41496,
+    2.35272,
+    2.3105,
+    2.39455,
+    2.16331,
+    2.22416,
+    2.17945,
+    2.14406,
+    1.88912,
+    2.19885,
+    1.92755,
+    2.11038
+   ],
+   "tinker_path": "tinker://e515c5e2-eaf0-5775-86d2-873586f4de9e:train:0/sampler_weights/random-2000-s2-20261127-073133",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T07:31:46.337892+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.26997,
+    "middle": 2.46148,
+    "hard": 4.8093
+   },
+   "dev_accuracy": {
+    "easy": 0.9,
+    "hard": 0.0,
+    "middle": 0.1267
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 0,
+   "loss_weighted_tokens": 9439,
+   "finished_at": "2026-11-27T07:33:16+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T06:23:41+00:00"
+  },
+  {
+   "name": "middle-2000-s3",
+   "set": "middle-2000-draw3",
+   "seed": 3,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "0e6380a8d08e",
+   "items": 2000,
+   "set_train_tokens": 218917,
+   "train_tokens": 875668,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.7,
+   "train_seconds": 1976.4,
+   "seconds_per_update": 7.84,
+   "median_seconds_per_update": 5.18,
+   "run_seconds": 2184.3,
+   "stalls": {
+    "updates": 6,
+    "seconds": 493.3,
+    "longest_s": 147.6
+   },
+   "loss_first": 3.29051,
+   "loss_last": 1.56316,
+   "group_losses": [
+    2.50105,
+    2.243,
+    2.24713,
+    2.1323,
+    2.08553,
+    2.04946,
+    2.00503,
+    1.95784,
+    1.74863,
+    1.7683,
+    1.82516,
+    1.94144,
+    1.59959,
+    1.5821,
+    1.517,
+    1.65756
+   ],
+   "tinker_path": "tinker://b08574f6-fcb7-5893-be81-3d624f88b3ff:train:0/sampler_weights/middle-2000-s3-20261127-080756",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T08:08:09.979365+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.2708,
+    "middle": 2.40478,
+    "hard": 5.25113
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0067,
+    "middle": 0.2067
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 3,
+   "loss_weighted_tokens": 7710,
+   "finished_at": "2026-11-27T08:09:54+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T07:33:30+00:00"
+  },
+  {
+   "name": "random-2000-s3",
+   "set": "random-2000-draw3",
+   "seed": 3,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "2f564c433c46",
+   "items": 2143,
+   "set_train_tokens": 218914,
+   "train_tokens": 875656,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 34.0,
+   "train_seconds": 1756.2,
+   "seconds_per_update": 6.97,
+   "median_seconds_per_update": 5.45,
+   "run_seconds": 1957.8,
+   "stalls": {
+    "updates": 3,
+    "seconds": 213.1,
+    "longest_s": 95.0
+   },
+   "loss_first": 2.80203,
+   "loss_last": 2.0675,
+   "group_losses": [
+    2.69889,
+    2.59135,
+    2.43477,
+    2.4146,
+    2.25951,
+    2.43147,
+    2.46108,
+    2.18144,
+    1.93507,
+    2.29709,
+    2.22045,
+    2.27266,
+    1.9833,
+    1.82758,
+    2.09019,
+    1.99728
+   ],
+   "tinker_path": "tinker://0292900b-87db-54ef-a7ca-d55a791004f4:train:0/sampler_weights/random-2000-s3-20261127-084113",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T08:41:25.418888+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.26147,
+    "middle": 2.33541,
+    "hard": 4.83507
+   },
+   "dev_accuracy": {
+    "easy": 0.88,
+    "hard": 0.0,
+    "middle": 0.1333
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 2,
+   "loss_weighted_tokens": 9121,
+   "finished_at": "2026-11-27T08:42:55+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T08:10:17+00:00"
+  },
+  {
+   "name": "shuffled-labels-2000",
+   "set": "shuffled-labels-2000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "642bc964d65c",
+   "items": 2000,
+   "set_train_tokens": 221061,
+   "train_tokens": 884244,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.7,
+   "train_seconds": 2630.7,
+   "seconds_per_update": 10.44,
+   "median_seconds_per_update": 6.01,
+   "run_seconds": 3006.3,
+   "stalls": {
+    "updates": 10,
+    "seconds": 927.0,
+    "longest_s": 222.1
+   },
+   "loss_first": 5.90997,
+   "loss_last": 2.59434,
+   "group_losses": [
+    3.97777,
+    3.26753,
+    3.17964,
+    3.25298,
+    3.10609,
+    3.13424,
+    3.07456,
+    3.05457,
+    2.95917,
+    2.93032,
+    2.95529,
+    2.83926,
+    2.61617,
+    2.58916,
+    2.58975,
+    2.5687
+   ],
+   "tinker_path": "tinker://70eb0c6c-cd36-5dbe-99ff-07c3360500ab:train:0/sampler_weights/shuffled-labels-2000-20261127-093130",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T09:31:43.264460+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 2.32437,
+    "middle": 3.56501,
+    "hard": 6.65983
+   },
+   "dev_accuracy": {
+    "easy": 0.0,
+    "hard": 0.0,
+    "middle": 0.0
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 0,
+   "loss_weighted_tokens": 7751,
+   "finished_at": "2026-11-27T09:33:19+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T08:43:12+00:00"
   }
  ],
  "totals": {
-  "runs": 3,
-  "updates": 756,
-  "train_tokens": 2650996,
-  "update_hours": 1.84,
-  "run_hours": 2.06,
-  "seconds_per_update": 8.76,
-  "stalled_updates": 22,
-  "stalled_seconds": 1659.6,
+  "runs": 7,
+  "updates": 1764,
+  "train_tokens": 6169264,
+  "update_hours": 4.7,
+  "run_hours": 5.2,
+  "seconds_per_update": 9.6,
+  "stalled_updates": 61,
+  "stalled_seconds": 5492.6,
   "queue_events": {
    "paused_rate_limit": 2
   },
-  "checkpoint_bytes": 2216369286
+  "checkpoint_bytes": 5171528322
  },
  "overlap_with_evaluation": {
   "alone": {
-   "updates": 344,
-   "median_s": 5.89,
-   "mean_s": 7.96
+   "updates": 420,
+   "median_s": 5.93,
+   "mean_s": 8.09
   },
   "while_evaluating": {
-   "updates": 412,
-   "median_s": 5.77,
-   "mean_s": 9.42
+   "updates": 1344,
+   "median_s": 5.69,
+   "mean_s": 10.07
   },
-  "median_ratio": 0.98,
-  "mean_ratio": 1.18
+  "median_ratio": 0.96,
+  "mean_ratio": 1.24
  },
  "failures": [],
  "notes": [
@@ -301,9 +605,33 @@
   "Every run trains in its own process. The third run started in the first process sat in the service's queue for seven minutes, with `paused_rate_limit` reported 13 times and no update made, as the third pilot run had. The process was stopped at 05:41 UTC and the run began two minutes into a fresh one. A run still waits about two minutes in the queue before its first update."
  ],
  "evaluation_status": {
-  "at": "2026-11-27T04:50:59+00:00",
+  "at": "2026-11-27T09:32:16+00:00",
   "states": {
    "base": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-2000-s1": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-2000-s1": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-2000-s2": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-2000-s2": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-2000-s3": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-2000-s3": {
     "done": 5776,
     "of": 5776
    },
@@ -312,6 +640,10 @@
     "of": 5776
    },
    "base-reasoning": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-2000-s1-reasoning": {
     "done": 5776,
     "of": 5776
    }
