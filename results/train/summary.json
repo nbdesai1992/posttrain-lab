@@ -1,0 +1,160 @@
+{
+ "generated_at": "2026-11-27T04:51:13+00:00",
+ "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+ "settings": {
+  "rank": 16,
+  "learning_rate": 0.00018,
+  "tokens_per_update": 3500,
+  "epochs": 4,
+  "checkpoint_ttl_days": 30
+ },
+ "planned_runs": [
+  "middle-2000-s1",
+  "random-2000-s1",
+  "middle-2000-s2",
+  "random-2000-s2",
+  "middle-2000-s3",
+  "random-2000-s3",
+  "shuffled-labels-2000",
+  "easy-2000",
+  "hard-2000",
+  "length-matched-random-2000",
+  "middle-250",
+  "random-250",
+  "middle-500",
+  "random-500",
+  "middle-1000",
+  "random-1000",
+  "middle-4000",
+  "random-4000"
+ ],
+ "complete": false,
+ "first_run_started_at": "2026-11-27T04:11:46+00:00",
+ "hours_since_first_start": 0.66,
+ "now_training": {
+  "name": "random-2000-s1",
+  "started_at": "2026-11-27T04:51:13+00:00"
+ },
+ "runs": [
+  {
+   "name": "middle-2000-s1",
+   "set": "middle-2000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "23b646236f6d",
+   "items": 2000,
+   "set_train_tokens": 221061,
+   "train_tokens": 884244,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.7,
+   "train_seconds": 2147.8,
+   "seconds_per_update": 8.52,
+   "median_seconds_per_update": 5.83,
+   "run_seconds": 2367.1,
+   "stalls": {
+    "updates": 9,
+    "seconds": 588.5,
+    "longest_s": 106.0
+   },
+   "loss_first": 3.17997,
+   "loss_last": 1.7089,
+   "group_losses": [
+    2.52035,
+    2.36595,
+    2.19799,
+    2.35048,
+    2.21908,
+    1.97136,
+    2.06926,
+    2.11975,
+    1.7693,
+    1.89421,
+    1.9442,
+    1.92177,
+    1.64401,
+    1.70339,
+    1.74262,
+    1.70236
+   ],
+   "tinker_path": "tinker://537aecc0-ddff-5c3e-888d-d9a0ca10388d:train:0/sampler_weights/middle-2000-s1-20261127-044907",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T04:49:19.624941+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.27436,
+    "middle": 2.30188,
+    "hard": 5.2337
+   },
+   "dev_accuracy": {
+    "easy": 0.88,
+    "hard": 0.0067,
+    "middle": 0.1933
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 4,
+   "loss_weighted_tokens": 7751,
+   "finished_at": "2026-11-27T04:51:13+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T04:11:46+00:00"
+  }
+ ],
+ "totals": {
+  "runs": 1,
+  "updates": 252,
+  "train_tokens": 884244,
+  "update_hours": 0.6,
+  "run_hours": 0.66,
+  "seconds_per_update": 8.52,
+  "stalled_updates": 9,
+  "stalled_seconds": 588.5,
+  "queue_events": {},
+  "checkpoint_bytes": 738789768
+ },
+ "overlap_with_evaluation": {
+  "alone": {
+   "updates": 140,
+   "median_s": 5.96,
+   "mean_s": 7.4
+  },
+  "while_evaluating": {
+   "updates": 112,
+   "median_s": 5.55,
+   "mean_s": 9.93
+  },
+  "median_ratio": 0.93,
+  "mean_ratio": 1.34
+ },
+ "failures": [],
+ "evaluation_status": {
+  "at": "2026-11-27T04:50:59+00:00",
+  "states": {
+   "base": {
+    "done": 5776,
+    "of": 5776
+   },
+   "prompt-only": {
+    "done": 5776,
+    "of": 5776
+   },
+   "base-reasoning": {
+    "done": 5776,
+    "of": 5776
+   }
+  }
+ }
+}

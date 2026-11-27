@@ -1,0 +1,55 @@
+{
+ "generated_at": "2026-11-27T04:51:13+00:00",
+ "runs": [
+  {
+   "run": "middle-2000-s1",
+   "set": "middle-2000",
+   "seed": 1,
+   "items": 2000,
+   "train_tokens": 884244,
+   "updates": 252,
+   "minutes": 39.5,
+   "seconds_per_update": 8.52,
+   "loss_by_group_of_updates": [
+    2.52035,
+    2.36595,
+    2.19799,
+    2.35048,
+    2.21908,
+    1.97136,
+    2.06926,
+    2.11975,
+    1.7693,
+    1.89421,
+    1.9442,
+    1.92177,
+    1.64401,
+    1.70339,
+    1.74262,
+    1.70236
+   ],
+   "loss_first": 3.17997,
+   "loss_last": 1.7089,
+   "dev_accuracy": {
+    "easy": 0.88,
+    "hard": 0.0067,
+    "middle": 0.1933
+   },
+   "stalled_seconds": 588.5
+  }
+ ],
+ "overlap_with_evaluation": {
+  "alone": {
+   "updates": 140,
+   "median_s": 5.96,
+   "mean_s": 7.4
+  },
+  "while_evaluating": {
+   "updates": 112,
+   "median_s": 5.55,
+   "mean_s": 9.93
+  },
+  "median_ratio": 0.93,
+  "mean_ratio": 1.34
+ }
+}

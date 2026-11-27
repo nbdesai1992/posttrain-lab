@@ -88,9 +88,11 @@ caffeinate -i .venv/bin/python -m posttrain_lab survey   # about four hours, fre
 .venv/bin/python -m posttrain_lab build-data             # a minute, no API call: generates problems and runs the leak check
 caffeinate -i .venv/bin/python -m posttrain_lab filter   # runs every problem in both settings and builds the training sets
 .venv/bin/python -m posttrain_lab train --config configs/train-pilot.toml   # six short runs that fix rank and learning rate
-caffeinate -i .venv/bin/python -m posttrain_lab train    # the 18 planned runs, one adapter each
-caffeinate -i .venv/bin/python -m posttrain_lab eval     # every adapter against the base model on the benchmarks
+caffeinate -i scripts/train_all.sh       # the 18 planned runs, one adapter each; a run that fails is started again
+caffeinate -i scripts/eval_follow.sh     # in a second shell: evaluates each adapter as it finishes, then writes the report
 ```
+
+The two scripts wrap `python -m posttrain_lab train` and `python -m posttrain_lab eval`, which can also be run on their own. While the runs train, `results/train/PROGRESS.md` says how far they are.
 
 `build-data` reads the benchmark files the survey downloaded, so the survey's sources must be in place first. `train` reads the committed sets in `results/data/`, so the filter does not have to be rerun to train on the same items.
 
