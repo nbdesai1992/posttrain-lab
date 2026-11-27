@@ -10,14 +10,14 @@ import pytest
 
 from posttrain_lab.data.sets import build_sets
 from posttrain_lab.steps.base import StepContext, run_step
-from posttrain_lab.steps.evaluate import Eval
+from posttrain_lab.steps.evaluate import Eval, decide, share_of_gap
 from posttrain_lab.steps.train import Train, fast_example, schedule, set_items, updates_per_epoch
 from posttrain_lab.client import RetryPolicy
 from posttrain_lab.store import JsonlStore
 from posttrain_lab.testing import FakeBackend, FakeTransient
 
 from conftest import run
-from test_survey import Parity
+from test_survey import Pairs, Parity
 
 
 @pytest.fixture
@@ -209,7 +209,7 @@ def test_eval_compares_each_state_with_the_base_on_the_same_items(tmp_path, rend
     assert run(run_step(Eval(), ctx, dry_run=True)) == 0 and backend.sample_calls == []
     assert run(run_step(Eval(), ctx)) == 0
     summary = json.loads((ctx.results_dir / "summary.json").read_text())
-    assert list(summary["states"]) == ["base", "prompt-only", "middle-s1"]
+    assert list(summary["states"]) == ["base", "middle-s1", "prompt-only"]
     base_cell, adapter_cell = summary["states"]["base"]["benchmarks"]["parity"], summary["states"]["middle-s1"]["benchmarks"]["parity"]
     assert base_cell["n"] == adapter_cell["n"] == 12 and "minus_base" not in base_cell
     too_long = adapter_cell["context_overflow"]  # the benchmark's one oversized item may be in the sample
@@ -236,6 +236,157 @@ def test_eval_marks_a_watch_cell_that_falls(tmp_path, renderer, make_client, dat
     cell = json.loads((ctx.results_dir / "summary.json").read_text())["states"]["broken"]["benchmarks"]["parity"]
     assert cell["role"] == "watch" and cell["regression"] is True and cell["minus_base"]["estimate"] < -0.4 and cell["n"] == 21
     assert "regression" in (ctx.results_dir / "REPORT.md").read_text()
+
+
+# ---------------------------------------------------------------- the arms and the rules
+
+
+def right(text):
+    if "even" in text:
+        return "yes" if int(text.split()[-2]) % 2 == 0 else "no"
+    return "A" if text.split()[-1] == "ab" else "B"
+
+
+def lazy(text):  # what the fast base model says: the same answer every time
+    return "yes" if "even" in text else "A"
+
+
+def half(text):  # right about the small numbers only
+    return right(text) if "even" in text and int(text.split()[-2]) < 10 else lazy(text)
+
+
+def never(text):
+    return "no" if "even" in text else "B"
+
+
+ARMS = {
+    "middle-2000-s1": right, "random-2000-s1": half, "middle-2000-s2": right, "random-2000-s2": half, "middle-2000-s3": right, "random-2000-s3": lazy,
+    "shuffled-labels-2000": right, "easy-2000": lazy, "hard-2000": never, "length-matched-random-2000": half,
+    "middle-250": lazy, "random-250": lazy, "middle-4000": right, "random-4000": half,
+}
+EXTRA_STATES = [
+    {"name": "prompt-only", "few_shot": True},
+    {"name": "base-reasoning", "setting": "reasoning"},
+    {"name": "middle-2000-s1-reasoning", "setting": "reasoning", "adapter": "middle-2000-s1"},
+]
+
+
+def arms_setup(tmp_path, renderer, make_client, data_dir, arms=ARMS, **more):
+    backend = FakeBackend(renderer, answer=right, forced_answer=lazy, adapter_answer={f"tinker://{name}": answer for name, answer in arms.items()})
+    client, _ = make_client(backend, max_concurrency=8)
+    runs_file = tmp_path / "summary.json"
+    runs_file.write_text(json.dumps({"runs": [{"name": name, "tinker_path": f"tinker://{name}", "set": name, "seed": int(name[-1]) if name[-2] == "s" else 1} for name in arms]}))
+    config = {"seed": 2, "data_dir": str(data_dir), "runs_file": str(runs_file), "_registry": {"parity": Parity(), "pairs": Pairs()}, "_skip_download": True,
+              "benchmarks": ["parity", "pairs"], "items": {"default": 0}, "target_benchmarks": ["parity"], "states": EXTRA_STATES, **more}
+    ctx, lines = context(tmp_path, renderer, "eval", client, **config)
+    return ctx, lines, backend
+
+
+def test_eval_compares_the_arms_and_applies_the_rules(tmp_path, renderer, make_client, data_dir):
+    ctx, lines, backend = arms_setup(tmp_path, renderer, make_client, data_dir, expected_states=[*ARMS, "prompt-only", "random-1000"])
+    assert run(run_step(Eval(), ctx)) == 0
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert list(summary["states"])[:2] == ["base", "middle-2000-s1"] and list(summary["states"])[-3:] == [s["name"] for s in EXTRA_STATES]
+    assert summary["missing"] == ["random-1000: not evaluated"] and not (ctx.runs_dir / "ACTIVE").exists()
+
+    # The base model's gap between the two settings, and how much of it a state closes.
+    gap = summary["base_gap"]["parity"]
+    assert (gap["base_fast"], gap["base_reasoning"]) == (round(10 / 21, 4), round(20 / 21, 4))
+    main = summary["states"]["middle-2000-s1"]["benchmarks"]["parity"]
+    assert main["gap_closed"]["estimate"] == 1.0 and summary["states"]["random-2000-s1"]["benchmarks"]["parity"]["gap_closed"]["estimate"] == 0.5
+    assert main["minus_base"]["gained"] == 10 and main["minus_base"]["lost"] == 0 and main["minus_base"]["mcnemar_p"] < 0.05
+    assert "gap_closed" not in summary["states"]["middle-2000-s1"]["benchmarks"]["pairs"] and "minus_base" not in summary["states"]["base-reasoning"]["benchmarks"]["parity"]
+
+    # Middle band against random, pooled over three seeds, with the seed-to-seed range.
+    comparison = summary["main_comparison"]["parity"]
+    pooled = comparison["middle_minus_random"]
+    assert comparison["seeds"] == [1, 2, 3] and pooled["n"] == 21 and abs(pooled["estimate"] - (20 - (15 + 15 + 10) / 3) / 21) < 1e-3 and pooled["low"] > 0
+    assert comparison["seed_range"] == {"low": round(5 / 21, 4), "high": round(10 / 21, 4)}
+    assert comparison["middle_scores"] == [round(20 / 21, 4)] * 3 and comparison["random_scores"] == [round(15 / 21, 4), round(15 / 21, 4), round(10 / 21, 4)]
+    controls = comparison["controls"]
+    assert controls["shuffled-labels-2000"]["middle_minus_control"]["estimate"] == 0.0 and controls["easy-2000"]["middle_minus_control"]["gained"] == 10
+    assert controls["hard-2000"]["label"] == "hard only" and controls["length-matched-random-2000"]["middle_minus_control"]["estimate"] == round(5 / 21, 4)
+
+    # The size sweep, the prompt-only state, the watch cells and the reasoning setting.
+    sweep = summary["size_sweep"]["parity"]
+    assert [point["size"] for point in sweep["middle"]] == [250, 2000, 4000] and [point["state"] for point in sweep["random"]] == ["random-250", "random-2000-s1", "random-4000"]
+    assert [point["score"]["estimate"] for point in sweep["middle"]] == [round(10 / 21, 4), round(20 / 21, 4), round(20 / 21, 4)]
+    prompt_only = summary["prompt_only"]["parity"]
+    assert prompt_only["minus_base"]["estimate"] == 0.0 and prompt_only["main_minus_prompt_only"]["gained"] == 10
+    assert [cell["benchmark"] for cell in summary["watch_cells"]] == ["pairs"] and summary["watch_cells"][0]["regression"] is False and summary["watch_cells"][0]["difference"]["estimate"] == 0.5
+    slow = summary["reasoning_pass"]
+    assert (slow["base_state"], slow["adapter_state"]) == ("base-reasoning", "middle-2000-s1-reasoning")
+    assert slow["benchmarks"]["parity"]["difference"]["estimate"] == 0.0 and slow["benchmarks"]["pairs"]["adapter"]["estimate"] == 1.0
+
+    # The rules, applied as written.
+    outcomes = {(d["rule"], d["benchmark"]): d["outcome"] for d in summary["decisions"]}
+    assert outcomes == {
+        ("P2", "parity"): "holds", ("P2, against prompt-only", "parity"): "holds", ("P3", "parity"): "holds",
+        ("P3, against easy only", "parity"): "supports", ("P3, against hard only", "parity"): "supports", ("P4", "parity"): "the two match", ("P5", None): "holds",
+    }
+    report = (ctx.results_dir / "REPORT.md").read_text()
+    assert all(d["line"] in report for d in summary["decisions"]) and "the gain is the model getting used to the format" in report
+    figure = json.loads((ctx.results_dir / "figure-data.json").read_text())
+    assert figure["size_sweep"]["parity"]["middle"][0] == {"size": 250, "score": round(10 / 21, 4), "low": figure["size_sweep"]["parity"]["middle"][0]["low"], "high": figure["size_sweep"]["parity"]["middle"][0]["high"]}
+    assert len(figure["targets_by_state"]) == 1 + len(ARMS) + 1 and figure["watch_cells"][0]["title"] == "Pairs"
+    # The base model in the reasoning setting and every adapter were sampled as asked.
+    assert sum(1 for call in backend.sample_calls if call["model_path"] == "tinker://middle-2000-s1") == 2 * (20 + 30)
+
+
+def test_eval_can_run_ahead_of_training_and_leave_the_report(tmp_path, renderer, make_client, data_dir):
+    first = {name: ARMS[name] for name in ("random-2000-s1",)}  # the main adapter is not trained yet
+    ctx, lines, backend = arms_setup(tmp_path, renderer, make_client, data_dir, arms=first, no_report=True)
+    assert run(run_step(Eval(), ctx)) == 0
+    status = json.loads((ctx.runs_dir / "status.json").read_text())
+    assert list(status["states"]) == ["base", "random-2000-s1", "prompt-only", "base-reasoning"]  # no state for an adapter that does not exist
+    assert all(state["done"] == state["of"] == 51 for state in status["states"].values())
+    assert not (ctx.results_dir / "summary.json").exists() and not (ctx.runs_dir / "ACTIVE").exists()
+    assert any("No report was written" in line for line in lines)
+    # Once the main adapter exists, only its replies are missing, and the report can be written.
+    made = len(backend.sample_calls)
+    ctx, lines, backend = arms_setup(tmp_path, renderer, make_client, data_dir, arms={"random-2000-s1": half, "middle-2000-s1": right})
+    assert run(run_step(Eval(), ctx)) == 0
+    assert len(backend.sample_calls) == 2 * 50  # the main adapter in the fast setting and in the reasoning setting
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert summary["main_comparison"]["parity"]["seeds"] == [1] and summary["main_comparison"]["parity"]["middle_minus_random"]["estimate"] == round(5 / 21, 4)
+    assert {d["outcome"] for d in summary["decisions"] if d["rule"] in ("P4", "P3, against easy only")} == {"not decided"}
+
+
+def test_the_rules_say_wrong_when_the_numbers_say_so():
+    def difference(estimate, low, high, p=0.5):
+        return {"estimate": estimate, "low": low, "high": high, "mcnemar_p": p, "gained": 1, "lost": 1}
+
+    summary = {
+        "main_adapter": "m", "targets": ["t"], "titles": {"t": "Target", "w1": "Watch one", "w2": "Watch two"},
+        "states": {"m": {"benchmarks": {"t": {"minus_base": difference(0.03, -0.01, 0.07, 0.2)}}}},
+        "prompt_only": {"t": {"main_minus_prompt_only": difference(-0.02, -0.05, 0.01, 0.3)}},
+        "main_comparison": {"t": {"seeds": [1, 2, 3], "middle_minus_random": {"estimate": 0.01, "low": -0.02, "high": 0.04}, "seed_range": {"low": -0.01, "high": 0.03},
+                                  "controls": {"easy-2000": {"label": "easy only", "middle_minus_control": difference(0.02, -0.01, 0.05)},
+                                               "hard-2000": {"label": "hard only", "middle_minus_control": difference(-0.06, -0.09, -0.03)},
+                                               "shuffled-labels-2000": {"label": "shuffled labels", "middle_minus_control": difference(0.2, 0.15, 0.25)}}}},
+        "watch_cells": [{"benchmark": "w1", "regression": True, "difference": difference(-0.031, -0.06, 0.0)}, {"benchmark": "w2", "regression": False, "difference": difference(0.01, -0.02, 0.04)}],
+    }
+    decisions = {(d["rule"], d["benchmark"]): d for d in decide(summary)}
+    assert decisions[("P2", "t")]["outcome"] == "wrong" and "McNemar's test does not separate" in decisions[("P2", "t")]["line"]
+    assert decisions[("P2, against prompt-only", "t")]["outcome"] == "wrong"
+    assert decisions[("P3", "t")]["outcome"] == "wrong" and "the interval includes zero" in decisions[("P3", "t")]["line"] and "seed by seed from -1.0 to +3.0" in decisions[("P3", "t")]["line"]
+    assert decisions[("P3, against easy only", "t")]["outcome"] == "counts against" and decisions[("P3, against hard only", "t")]["outcome"] == "counts against"
+    assert "hard only is ahead" in decisions[("P3, against hard only", "t")]["line"]
+    assert decisions[("P4", "t")]["outcome"] == "the two differ" and "more than the format" in decisions[("P4", "t")]["line"]
+    assert decisions[("P5", None)]["outcome"] == "wrong" and "1 of 2 watch cells" in decisions[("P5", None)]["line"] and "Watch one -3.1 points" in decisions[("P5", None)]["line"]
+    # A score that falls is wrong whatever the test says, and a pooled difference below zero is wrong for the middle band.
+    summary["states"]["m"]["benchmarks"]["t"]["minus_base"] = difference(-0.1, -0.15, -0.05, 0.001)
+    summary["main_comparison"]["t"]["middle_minus_random"] = {"estimate": -0.05, "low": -0.08, "high": -0.02}
+    decisions = {(d["rule"], d["benchmark"]): d for d in decide(summary)}
+    assert decisions[("P2", "t")]["outcome"] == "wrong" and "the score does not rise" in decisions[("P2", "t")]["line"]
+    assert decisions[("P3", "t")]["outcome"] == "wrong" and "random is ahead" in decisions[("P3", "t")]["line"]
+
+
+def test_share_of_gap():
+    fast, reference = [0, 0, 0, 0, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]
+    result = share_of_gap(fast, reference, [1, 1, 0, 0, 1, 1, 1, 1], seed=1)
+    assert result["estimate"] == 0.5 and 0 <= result["low"] <= 0.5 <= result["high"] <= 1
+    assert share_of_gap(fast, fast, fast, seed=1) is None and share_of_gap([], [], [], seed=1) is None
 
 
 def test_a_config_can_keep_its_runs_in_their_own_folder(tmp_path, renderer, data_dir):

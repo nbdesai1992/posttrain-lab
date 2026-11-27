@@ -1,6 +1,6 @@
-# Eval: every adapter in the fast setting on the survey benchmarks, paired with the base
-# model on the same items. The states are the base model, the prompt-only state below,
-# and every run listed in results/train/runs.json.
+# Eval: every adapter on the survey benchmarks, paired with the base model on the same
+# items. The states are the base model, every run listed in results/train/summary.json,
+# and the three states at the end of this file.
 
 model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
 seed = 20261126
@@ -10,6 +10,15 @@ benchmarks = [
     "bfcl", "jsonschemabench", "ifeval", "mmlu_pro", "bfcl_multi_turn",
 ]
 target_benchmarks = ["gsm8k", "mbpp"]    # the trained job; every other benchmark is a watch cell
+main_adapter = "middle-2000-s1"
+
+# What the plan needs, so the report can say what is missing.
+expected_states = [
+    "middle-2000-s1", "random-2000-s1", "middle-2000-s2", "random-2000-s2", "middle-2000-s3", "random-2000-s3",
+    "shuffled-labels-2000", "easy-2000", "hard-2000", "length-matched-random-2000",
+    "middle-250", "random-250", "middle-500", "random-500", "middle-1000", "random-1000", "middle-4000", "random-4000",
+    "prompt-only", "base-reasoning", "middle-2000-s1-reasoning",
+]
 
 progress_seconds = 60
 grading_workers = 4
@@ -25,6 +34,19 @@ bfcl_multi_turn = 0                     # all 200 items of the survey's sample; 
 [[states]]
 name = "prompt-only"
 few_shot = true
+
+# The base model in the reasoning setting, on the same items. Its replies come from the
+# survey's cache. It gives the gap that the fast-setting gains are measured against.
+[[states]]
+name = "base-reasoning"
+setting = "reasoning"
+
+# The main adapter left free to reason, to see whether teaching the direct answer
+# damages it there.
+[[states]]
+name = "middle-2000-s1-reasoning"
+setting = "reasoning"
+adapter = "middle-2000-s1"
 
 [client]
 max_concurrency = 32

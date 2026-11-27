@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--dry-run", action="store_true", help="print planned calls and a token estimate, call nothing")
         sub.add_argument("--fresh", action="store_true", help="rerun units even if their results are stored")
         sub.add_argument("--only", metavar="KIND", help="run only the units of this kind (see the kind column of --dry-run)")
+        sub.add_argument("--no-report", action="store_true", help="run the pending units and leave the report for a later invocation (steps that support it)")
         sub.add_argument("--runs-dir", type=Path, default=REPO_ROOT / "runs", help="raw rows, call logs and the response cache")
         sub.add_argument("--results-dir", type=Path, default=REPO_ROOT / "results", help="small summaries that are committed")
         sub.add_argument("--model-id", default=None, help=f"model ID to call (default: the config's, else {FREE_MODEL_ID})")
@@ -78,6 +79,8 @@ async def _run(args: argparse.Namespace, make_renderer: Callable, make_backend: 
         out(f"error: {exc}")
         return 2
     config["model_id"] = model_id
+    if getattr(args, "no_report", False):
+        config["no_report"] = True
 
     folder = config.get("folder", step.name)  # a config can keep its rows and results apart, as the pilot does
     runs_dir = Path(args.runs_dir) / folder

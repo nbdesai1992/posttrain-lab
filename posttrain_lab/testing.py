@@ -95,7 +95,7 @@ class FakeBackend:
         *,
         answer: Callable[[str], str] | str = "yes",
         forced_answer: Callable[[str], str] | str | None = None,
-        adapter_answer: Callable[[str], str] | str | None = None,
+        adapter_answer: Callable[[str], str] | str | dict | None = None,
         thinking_words: int = 6,
         latency_s: float = 0.0,
         failures: Sequence[BaseException | None] = (),
@@ -147,7 +147,8 @@ class FakeBackend:
         answer_forced = list(prompt_tokens[-2:]) == [MESSAGE_MODEL, CONTENT_TEXT]
         source = self.forced_answer if (answer_forced and self.forced_answer is not None) else self.answer
         if model_path is not None and self.adapter_answer is not None:
-            source = self.adapter_answer
+            # One answer for every adapter, or one per adapter path.
+            source = self.adapter_answer.get(model_path, source) if isinstance(self.adapter_answer, dict) else self.adapter_answer
         answer = source(prompt_text) if callable(source) else source
         tokens: list[int] = []
         if answer_forced:
