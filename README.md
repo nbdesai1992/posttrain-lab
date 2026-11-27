@@ -10,25 +10,36 @@ The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md) and [resul
 
 ## What the survey found
 
-The survey scores the base model on public benchmarks in three settings. `fast` is a forced direct answer at effort 0.0, with no reasoning block. `slow` is effort 0.9, free-running. `effort_0` is free-running effort 0.0, the model's shipped no-effort setting, which still reasons, and it ran on a fixed subsample of each benchmark. Scores are percentages, and the report has the intervals.
+The survey scores the base model on public benchmarks in three settings. `fast` is a forced direct answer at effort 0.0, with no reasoning block. `effort 0.9` is free-running at the model's high effort setting. `reasoning` is free-running effort 0.0, the model's shipped no-effort setting, which still reasons before it answers. Both free-running settings have an 8,192-token limit. Scores are percentages, and the report has the intervals.
 
-| benchmark | job | fast | slow | slow minus fast | effort_0 (subsample) | by the target rule |
+| benchmark | job | items | fast | effort 0.9 | reasoning | reasoning minus fast |
 |---|---|---|---|---|---|---|
-| JudgeBench, pairwise | Judging answers | 69.0 | 64.3 | -4.6 | 72.5 | usable as is |
-| JudgeBench, one response at a time | Judging answers | 61.3 | 61.1 | -0.2 | 77.5 | usable as is |
-| RewardBench 2, best of four | Judging answers | 70.9 | 70.8 | -0.1 | 82.2 | usable as is |
-| LLMBar | Judging answers | 74.6 | 86.2 | +11.6 | 84.5 | training target |
-| BFCL V4, single turn | Calling tools | 74.1 | 78.3 | +4.2 | 80.3 | in between |
-| JSONSchemaBench (sample of 1,000) | Filling a schema | 95.6 | 97.9 | +2.3 | 98.5 | usable as is |
-| GSM8K | Reasoning without the wait | 37.5 | 95.8 | +58.3 | 96.5 | training target |
-| MBPP (sanitized test split) | Reasoning without the wait | 82.1 | 92.2 | +10.1 | 93.5 | training target |
-| IFEval | Instructions and knowledge | 68.4 | 75.8 | +7.4 | 87.5 | watch only (in between) |
-| MMLU-Pro (sample of 500) | Instructions and knowledge | 56.4 | 73.0 | +16.6 | 80.5 | watch only (training target) |
-| BFCL V4, multi turn (sample of 200) | Calling tools | 28.5 | 40.5 | +12.0 | 33.2 | training target |
+| JudgeBench, pairwise | Judging answers | 1,240 | 69.0 | 64.3 | 74.7 | +5.7 |
+| JudgeBench, one response at a time | Judging answers | 1,240 | 61.3 | 61.1 | 73.3 | +12.0 |
+| RewardBench 2, best of four | Judging answers | 1,763 | 70.9 | 70.8 | 78.5 | +7.6 |
+| LLMBar | Judging answers | 838 | 74.6 | 86.2 | 85.9 | +11.3 |
+| BFCL V4, single turn | Calling tools | 3,491 | 74.1 | 78.3 | 78.3 | +4.2 |
+| BFCL V4, multi turn (sample of 200) | Calling tools | 200 | 28.5 | 40.5 | 37.0 | +8.5 |
+| JSONSchemaBench (sample of 1,000) | Filling a schema | 1,000 | 95.6 | 97.9 | 97.9 | +2.3 |
+| GSM8K | Reasoning without the wait | 1,319 | 37.5 | 95.8 | 96.7 | +59.2 |
+| MBPP (sanitized test split) | Reasoning without the wait | 257 | 82.1 | 92.2 | 94.5 | +12.4 |
+| IFEval | Instructions and knowledge | 541 | 68.4 | 75.8 | 87.4 | +19.0 |
+| MMLU-Pro (sample of 500) | Instructions and knowledge | 500 | 56.4 | 73.0 | 80.2 | +23.8 |
 
 LLM-AggreFact and WildGuardTest were not run. Both are gated on Hugging Face and need a token.
 
-The rule was fixed before the run. A job is a training target when slow beats fast by 10 points or more, and usable as is when the gap is 3 points or less. Three things in the table need care. At effort 0.9 between a fifth and a third of the replies on the judging and knowledge benchmarks ran past the 8,192-token limit without answering, which pulls the slow score down. Free-running effort 0.0 reasons for about half as long, is cut off far less often, and on every single-turn benchmark in the subsample it was either ahead of effort 0.9 or within a point of it. And published leaderboard scores were left out, so the half of the rule that compares against the frontier was not applied.
+The reference for the rest of the study is the reasoning setting. Effort 0.9 was the first choice and was measured in full. On the judging and knowledge benchmarks between a fifth and a third of its replies reached the 8,192-token limit without an answer, which pulls its score down. Free-running effort 0.0 reasons for about half as long and is cut off less often. Paired on the same items, it is ahead of effort 0.9 on six of the eleven benchmarks with an interval that excludes zero and behind on none. Its largest shortfall is 3.5 points on the multi-turn BFCL sample, with an interval that includes zero. Effort 0.9 stays in the tables as measured.
+
+The target rule is applied to jobs. A job's gap is the unweighted mean, over the benchmarks listed for it beforehand, of reference minus fast in points. A gap of 10 or more makes the job a training target, and a gap of 3 or less means the fast setting is usable as it is.
+
+| job | benchmarks | gap against effort 0.9 | gap against the reasoning setting | class |
+|---|---|---|---|---|
+| Reasoning without the wait | GSM8K, MBPP | +34.2 | +35.8 | training target |
+| Judging answers | JudgeBench pairwise, RewardBench 2, LLMBar | +2.3 | +8.2 | in between (usable as is against effort 0.9) |
+| Calling tools | BFCL single turn, BFCL multi turn | +8.1 | +6.4 | in between |
+| Filling a schema | JSONSchemaBench | +2.3 | +2.3 | usable as is |
+
+Reasoning without the wait is the one training target. IFEval and MMLU-Pro are watched for forgetting and never trained. The pointwise form of JudgeBench is outside the list that was fixed beforehand, so anything built on it would be exploratory.
 
 ## What the smoke test found
 
@@ -57,8 +68,14 @@ export TINKER_API_KEY="..."            # the key is read from the environment an
 
 docker pull python:3.11-slim                        # once; MBPP answers run in this image with no network
 .venv/bin/python -m posttrain_lab survey --dry-run
-caffeinate -i .venv/bin/python -m posttrain_lab survey   # about three hours, free; caffeinate keeps a Mac awake
+caffeinate -i .venv/bin/python -m posttrain_lab survey   # about four hours, free; caffeinate keeps a Mac awake
+
+.venv/bin/python -m posttrain_lab build-data             # a minute, no API call: generates problems and runs the leak check
+caffeinate -i .venv/bin/python -m posttrain_lab filter   # runs every problem in both settings and builds the training sets
+.venv/bin/python -m posttrain_lab train --config configs/train-pilot.toml   # five short runs that fix rank and learning rate
 ```
+
+`build-data` reads the benchmark files the survey downloaded, so the survey's sources must be in place first. `train` reads the committed sets in `results/data/`, so the filter does not have to be rerun to train on the same items.
 
 The survey downloads its benchmark files itself, without a login, into `runs/survey/sources/`. Each file is pinned to a revision and checked against a SHA-256 value in `posttrain_lab/benchmarks/pins.json`. A survey that stops for any reason picks up where it left off when the same command is run again, and `--only gsm8k` limits a run to one benchmark.
 
@@ -87,10 +104,14 @@ These are fixed for the whole study.
 
 `posttrain_lab/benchmarks/` holds the public benchmarks. Each one is a small class that loads its items, gives every item one prompt, and grades a reply with a program. `sources.py` lists where every file comes from. BFCL and IFEval are graded by their own public checkers, imported from the pinned copies, and BFCL replies are decoded and executed without `eval`.
 
+`posttrain_lab/data/` builds the training data. `generators.py` writes problems in eleven families at up to seven levels of difficulty, each with an answer computed by the program that wrote it. `leak.py` compares every candidate with every survey benchmark item. `sets.py` sorts labeled items into the four cells and draws the training sets with fixed seeds.
+
+The steps run in this order. `survey` scores the base model. `build-data` generates candidates and drops any that resemble a benchmark item. `filter` runs each candidate in the fast and reasoning settings, labels it, and writes the training sets. `train` makes one LoRA adapter per run from a saved set, with examples rendered for the fast setting and the answer alone as the target. `eval` reruns the benchmarks in the fast setting for the base model, for every adapter and for a prompt-only state, and compares each with the base model on the same items.
+
 Each step is a subcommand that follows one convention, defined in `posttrain_lab/steps/base.py`. A step reads a TOML config from `configs/`, plans its work as a list of units, and appends one row per finished unit to `runs/<step>/results.jsonl`, keyed by a hash of the unit's inputs. A rerun skips the units that are already there. Every step accepts `--dry-run`, which prints the planned call counts and a token estimate and calls nothing. `--fresh` runs units again even if their rows are stored, and `--only KIND` limits a run to one kind of unit.
 
 ## Where results live
 
 `runs/` holds everything large or raw, and is not committed. That covers the response cache in `runs/cache/`, and for each step its result rows, its call log (`calls.jsonl`) and the service events it saw.
 
-`results/` holds the small summaries that are committed, one folder per step.
+`results/` holds the small summaries that are committed, one folder per step. `results/data/` also holds the labeled items and the training sets themselves, with a manifest of SHA-256 values, because they are small and every later step reads them.

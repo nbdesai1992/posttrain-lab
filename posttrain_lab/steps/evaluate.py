@@ -126,7 +126,7 @@ def render_report(summary: dict, titles: dict[str, str]) -> str:
     lines = ["# Evaluation of adapters", ""]
     lines.append(
         f"Every model state answered the same items with the same prompt in the fast setting (a forced direct answer at effort 0.0). "
-        f"Each cell shows the score in percent and, under it in the same cell, the paired difference from the base model in points with its 95% interval. "
+        f"Each cell shows the score in percent and, after the semicolon, the paired difference from the base model in points with its 95% interval. "
         f"A watch cell that falls by more than {summary['regression_points']:g} points is marked as a regression. Generated {summary['generated_at']}."
     )
     names = [n for n in titles if any(n in s["benchmarks"] for s in summary["states"].values())]

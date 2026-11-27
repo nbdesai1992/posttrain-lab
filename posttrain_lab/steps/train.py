@@ -122,6 +122,7 @@ class Train(Step):
             return out
 
         dev_loss_before = await dev_loss()
+        loop_started = time.monotonic()
         losses: list[float] = []
         chunk = ctx.config.get("updates_per_call", 16)
         for start in range(0, len(batches), chunk):
@@ -132,7 +133,7 @@ class Train(Step):
                 losses.append(round(result.get("metrics", {}).get("loss:sum", 0.0) / max(weight, 1.0), 5))
             append_jsonl(ctx.runs_dir / "progress.jsonl", {"run": p["name"], "updates": start + len(group), "of": len(batches), "loss": losses[-1], "seconds": round(time.monotonic() - started, 1)})
             ctx.out(f"    {p['name']}: {start + len(group)}/{len(batches)} updates, loss {losses[-1]:.4f}, {time.monotonic() - started:.0f} s")
-        train_seconds = time.monotonic() - started
+        loop_seconds = time.monotonic() - loop_started
         dev_loss_after = await dev_loss()
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
@@ -162,8 +163,9 @@ class Train(Step):
             "set_train_tokens": sum(len(tokens) for tokens, _ in examples),
             "train_tokens": sum(len(examples[i][0]) for batch in batches for i in batch),
             "updates": len(batches),
-            "train_seconds": round(train_seconds, 1),
-            "seconds_per_update": round(train_seconds / len(batches), 2),
+            "train_seconds": round(loop_seconds, 1),
+            "seconds_per_update": round(loop_seconds / len(batches), 2),
+            "run_seconds": round(time.monotonic() - started, 1),  # with set-up, the save, the load and the dev replies
             "loss_first": losses[0],
             "loss_last": round(sum(tail) / len(tail), 5),
             "losses": losses,
