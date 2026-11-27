@@ -1,8 +1,8 @@
 {
- "generated_at": "2026-11-27T00:01:26+00:00",
+ "generated_at": "2026-11-27T15:39:55+00:00",
  "settings": {
   "fast": "a forced direct answer at effort 0.0 (no reasoning block)",
-  "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference and teacher from here on",
+  "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference, and the filter for the training data, from here on",
   "slow": "effort 0.9, free-running, with an 8,192-token limit: measured once and not used as the reference",
   "effort_0": "the reasoning setting on a fixed subsample: the first look at it, now part of the full pass"
  },

@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T09:33:25+00:00",
+ "generated_at": "2026-11-27T15:06:14+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "settings": {
   "rank": 16,
@@ -28,13 +28,10 @@
   "middle-4000",
   "random-4000"
  ],
- "complete": false,
+ "complete": true,
  "first_run_started_at": "2026-11-27T04:11:46+00:00",
- "hours_since_first_start": 5.36,
- "now_training": {
-  "name": "easy-2000",
-  "started_at": "2026-11-27T09:33:25+00:00"
- },
+ "hours_since_first_start": 10.91,
+ "now_training": null,
  "runs": [
   {
    "name": "middle-2000-s1",
@@ -569,35 +566,833 @@
    "finished_at": "2026-11-27T09:33:19+00:00",
    "service_events": {},
    "started_at": "2026-11-27T08:43:12+00:00"
+  },
+  {
+   "name": "easy-2000",
+   "set": "easy-2000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "1d19f42e9a97",
+   "items": 2865,
+   "set_train_tokens": 221081,
+   "train_tokens": 884324,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 45.5,
+   "train_seconds": 2062.7,
+   "seconds_per_update": 8.19,
+   "median_seconds_per_update": 5.88,
+   "run_seconds": 2261.3,
+   "stalls": {
+    "updates": 6,
+    "seconds": 374.1,
+    "longest_s": 90.3
+   },
+   "loss_first": 0.4076,
+   "loss_last": 0.11401,
+   "group_losses": [
+    0.34072,
+    0.31163,
+    0.30809,
+    0.25334,
+    0.25049,
+    0.24662,
+    0.1909,
+    0.24015,
+    0.16374,
+    0.18048,
+    0.1418,
+    0.1814,
+    0.13489,
+    0.11848,
+    0.11091,
+    0.10449
+   ],
+   "tinker_path": "tinker://12fa294b-a279-53a0-8bb7-c591cb63506b:train:0/sampler_weights/easy-2000-20261127-100921",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T10:09:31.745135+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.36151,
+    "middle": 3.59808,
+    "hard": 6.70708
+   },
+   "dev_accuracy": {
+    "easy": 0.9,
+    "hard": 0.0,
+    "middle": 0.1067
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 4,
+   "loss_weighted_tokens": 9149,
+   "finished_at": "2026-11-27T10:11:15+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T09:33:34+00:00"
+  },
+  {
+   "name": "hard-2000",
+   "set": "hard-2000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "f72557396761",
+   "items": 1949,
+   "set_train_tokens": 221087,
+   "train_tokens": 884348,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 30.9,
+   "train_seconds": 1889.6,
+   "seconds_per_update": 7.5,
+   "median_seconds_per_update": 5.61,
+   "run_seconds": 2088.5,
+   "stalls": {
+    "updates": 5,
+    "seconds": 265.0,
+    "longest_s": 83.6
+   },
+   "loss_first": 5.12637,
+   "loss_last": 3.96509,
+   "group_losses": [
+    4.4753,
+    4.2799,
+    4.30703,
+    4.32931,
+    4.14907,
+    4.2399,
+    4.18613,
+    4.11212,
+    4.11622,
+    3.98627,
+    4.10617,
+    4.02768,
+    3.82715,
+    3.93207,
+    3.96556,
+    3.9653
+   ],
+   "tinker_path": "tinker://db75f59d-c34f-5c26-9dd9-d23a876586e7:train:0/sampler_weights/hard-2000-20261127-104428",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T10:44:39.793873+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.36815,
+    "middle": 2.73081,
+    "hard": 4.45817
+   },
+   "dev_accuracy": {
+    "easy": 0.8733,
+    "hard": 0.0,
+    "middle": 0.06
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 3,
+   "loss_weighted_tokens": 13130,
+   "finished_at": "2026-11-27T10:46:21+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T10:11:33+00:00"
+  },
+  {
+   "name": "length-matched-random-2000",
+   "set": "length-matched-random-2000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "f2970acb9c93",
+   "items": 2000,
+   "set_train_tokens": 221061,
+   "train_tokens": 884244,
+   "updates": 252,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.7,
+   "train_seconds": 2534.6,
+   "seconds_per_update": 10.06,
+   "median_seconds_per_update": 6.0,
+   "run_seconds": 2772.9,
+   "stalls": {
+    "updates": 13,
+    "seconds": 901.0,
+    "longest_s": 184.2
+   },
+   "loss_first": 3.09654,
+   "loss_last": 1.88322,
+   "group_losses": [
+    2.60072,
+    2.5499,
+    2.17677,
+    2.38959,
+    2.27327,
+    2.08307,
+    2.42215,
+    2.13655,
+    1.97344,
+    1.91982,
+    2.14276,
+    2.1392,
+    1.93658,
+    1.79848,
+    1.92602,
+    1.88465
+   ],
+   "tinker_path": "tinker://5d89ebd1-7b1d-5db8-973b-e1e80460b283:train:0/sampler_weights/length-matched-random-2000-20261127-113016",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T11:30:30.924877+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.27804,
+    "middle": 2.42064,
+    "hard": 4.84165
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0067,
+    "middle": 0.12
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 5,
+   "loss_weighted_tokens": 8015,
+   "finished_at": "2026-11-27T11:32:50+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T10:46:37+00:00"
+  },
+  {
+   "name": "middle-250",
+   "set": "middle-250",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "00addfbd082b",
+   "items": 250,
+   "set_train_tokens": 29248,
+   "train_tokens": 116992,
+   "updates": 32,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.2,
+   "train_seconds": 232.7,
+   "seconds_per_update": 7.27,
+   "median_seconds_per_update": 5.35,
+   "run_seconds": 431.9,
+   "stalls": {
+    "updates": 1,
+    "seconds": 57.3,
+    "longest_s": 57.3
+   },
+   "loss_first": 3.09674,
+   "loss_last": 2.06056,
+   "group_losses": [
+    2.53376,
+    2.22522
+   ],
+   "tinker_path": "tinker://3149eac2-a4a1-5fbf-abae-b7ae7aba532a:train:0/sampler_weights/middle-250-20261127-113830",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T11:38:39.819727+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.25467,
+    "middle": 2.25815,
+    "hard": 4.58644
+   },
+   "dev_accuracy": {
+    "easy": 0.9,
+    "hard": 0.0,
+    "middle": 0.0733
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 3,
+   "loss_weighted_tokens": 1000,
+   "finished_at": "2026-11-27T11:40:19+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T11:33:07+00:00"
+  },
+  {
+   "name": "random-250",
+   "set": "random-250",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "b1692ba8a404",
+   "items": 274,
+   "set_train_tokens": 29214,
+   "train_tokens": 116856,
+   "updates": 32,
+   "tokens_per_update": 3500,
+   "items_per_update": 34.2,
+   "train_seconds": 215.6,
+   "seconds_per_update": 6.74,
+   "median_seconds_per_update": 5.3,
+   "run_seconds": 399.4,
+   "stalls": {
+    "updates": 0,
+    "seconds": 0,
+    "longest_s": 0.0
+   },
+   "loss_first": 3.80153,
+   "loss_last": 2.49436,
+   "group_losses": [
+    2.76709,
+    2.47342
+   ],
+   "tinker_path": "tinker://f43f5aab-a78a-5c82-9d82-ac916e750389:train:0/sampler_weights/random-250-20261127-114531",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T11:45:40.587969+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.26858,
+    "middle": 2.32543,
+    "hard": 4.53889
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0,
+    "middle": 0.08
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 15,
+   "loss_weighted_tokens": 1195,
+   "finished_at": "2026-11-27T11:47:14+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T11:40:34+00:00"
+  },
+  {
+   "name": "middle-500",
+   "set": "middle-500",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "f4b2f95bcf37",
+   "items": 500,
+   "set_train_tokens": 56595,
+   "train_tokens": 226380,
+   "updates": 64,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.2,
+   "train_seconds": 445.1,
+   "seconds_per_update": 6.95,
+   "median_seconds_per_update": 5.63,
+   "run_seconds": 653.3,
+   "stalls": {
+    "updates": 1,
+    "seconds": 53.9,
+    "longest_s": 53.9
+   },
+   "loss_first": 3.39416,
+   "loss_last": 1.95826,
+   "group_losses": [
+    2.54765,
+    2.25653,
+    2.08767,
+    1.90608
+   ],
+   "tinker_path": "tinker://fd7bab27-678d-5350-ac83-54bc84df5b39:train:0/sampler_weights/middle-500-20261127-115623",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T11:56:35.974508+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.27179,
+    "middle": 2.36939,
+    "hard": 4.69955
+   },
+   "dev_accuracy": {
+    "easy": 0.9,
+    "hard": 0.0,
+    "middle": 0.1133
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 5732,
+   "dev_unfinished_replies": 24,
+   "loss_weighted_tokens": 1956,
+   "finished_at": "2026-11-27T11:58:24+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T11:47:30+00:00"
+  },
+  {
+   "name": "random-500",
+   "set": "random-500",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "a29af8b7a756",
+   "items": 537,
+   "set_train_tokens": 56601,
+   "train_tokens": 226404,
+   "updates": 64,
+   "tokens_per_update": 3500,
+   "items_per_update": 33.6,
+   "train_seconds": 536.7,
+   "seconds_per_update": 8.39,
+   "median_seconds_per_update": 5.98,
+   "run_seconds": 796.0,
+   "stalls": {
+    "updates": 2,
+    "seconds": 67.8,
+    "longest_s": 34.0
+   },
+   "loss_first": 2.55445,
+   "loss_last": 2.42191,
+   "group_losses": [
+    2.77262,
+    2.53605,
+    2.39492,
+    2.27503
+   ],
+   "tinker_path": "tinker://b2e85d01-300e-5fc5-b7da-876c79db3a06:train:0/sampler_weights/random-500-20261127-120932",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T12:09:43.878270+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.28064,
+    "middle": 2.38105,
+    "hard": 4.58574
+   },
+   "dev_accuracy": {
+    "easy": 0.8667,
+    "hard": 0.0,
+    "middle": 0.0867
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 19,
+   "loss_weighted_tokens": 2315,
+   "finished_at": "2026-11-27T12:11:54+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T11:58:38+00:00"
+  },
+  {
+   "name": "middle-1000",
+   "set": "middle-1000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "60fb9fbc1081",
+   "items": 1000,
+   "set_train_tokens": 112139,
+   "train_tokens": 448556,
+   "updates": 128,
+   "tokens_per_update": 3500,
+   "items_per_update": 31.2,
+   "train_seconds": 774.2,
+   "seconds_per_update": 6.05,
+   "median_seconds_per_update": 5.38,
+   "run_seconds": 985.7,
+   "stalls": {
+    "updates": 1,
+    "seconds": 35.3,
+    "longest_s": 35.3
+   },
+   "loss_first": 3.17891,
+   "loss_last": 1.86413,
+   "group_losses": [
+    2.51351,
+    2.31311,
+    2.26299,
+    2.0954,
+    2.07134,
+    1.87798,
+    1.67167,
+    1.87217
+   ],
+   "tinker_path": "tinker://42f2e86b-3caf-5201-a05e-f4cbb12e2e22:train:0/sampler_weights/middle-1000-20261127-122649",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T12:26:59.285953+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.28277,
+    "middle": 2.33269,
+    "hard": 5.0421
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0,
+    "middle": 0.16
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 3,
+   "loss_weighted_tokens": 3873,
+   "finished_at": "2026-11-27T12:28:37+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T12:12:12+00:00"
+  },
+  {
+   "name": "random-1000",
+   "set": "random-1000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "3ce139aa6cd1",
+   "items": 1096,
+   "set_train_tokens": 112079,
+   "train_tokens": 448316,
+   "updates": 128,
+   "tokens_per_update": 3500,
+   "items_per_update": 34.2,
+   "train_seconds": 966.9,
+   "seconds_per_update": 7.55,
+   "median_seconds_per_update": 5.29,
+   "run_seconds": 1164.9,
+   "stalls": {
+    "updates": 3,
+    "seconds": 192.2,
+    "longest_s": 94.2
+   },
+   "loss_first": 3.43111,
+   "loss_last": 2.0964,
+   "group_losses": [
+    2.6228,
+    2.5672,
+    2.40098,
+    2.3271,
+    2.20556,
+    2.16623,
+    2.0389,
+    2.04914
+   ],
+   "tinker_path": "tinker://555877ee-034a-5e87-91bb-9548ac4f2535:train:0/sampler_weights/random-1000-20261127-124627",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T12:46:36.610978+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.32202,
+    "middle": 2.55485,
+    "hard": 4.79943
+   },
+   "dev_accuracy": {
+    "easy": 0.8867,
+    "hard": 0.0,
+    "middle": 0.1067
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 12,
+   "loss_weighted_tokens": 4629,
+   "finished_at": "2026-11-27T12:48:18+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T12:28:53+00:00"
+  },
+  {
+   "name": "middle-4000",
+   "set": "middle-4000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "86e13715dcd9",
+   "items": 4000,
+   "set_train_tokens": 435137,
+   "train_tokens": 1740548,
+   "updates": 496,
+   "tokens_per_update": 3500,
+   "items_per_update": 32.3,
+   "train_seconds": 3524.2,
+   "seconds_per_update": 7.11,
+   "median_seconds_per_update": 5.25,
+   "run_seconds": 3729.4,
+   "stalls": {
+    "updates": 10,
+    "seconds": 554.3,
+    "longest_s": 123.5
+   },
+   "loss_first": 3.42464,
+   "loss_last": 1.66437,
+   "group_losses": [
+    2.53018,
+    2.28335,
+    2.26062,
+    2.2724,
+    2.19523,
+    2.23086,
+    2.25046,
+    2.0533,
+    2.04799,
+    2.00228,
+    2.21936,
+    2.05265,
+    1.95034,
+    2.01044,
+    2.0952,
+    2.08071,
+    2.00045,
+    1.72558,
+    1.85636,
+    1.86632,
+    1.83489,
+    1.81551,
+    2.0533,
+    1.77975,
+    1.61523,
+    1.69548,
+    1.70661,
+    1.5766,
+    1.55109,
+    1.70461,
+    1.75655
+   ],
+   "tinker_path": "tinker://668f7c57-905e-5651-b859-036095f4cc08:train:0/sampler_weights/middle-4000-20261127-134903",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789768,
+    "expires_at": "2026-12-27T13:49:08.958148+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.2651,
+    "middle": 2.25909,
+    "hard": 5.02277
+   },
+   "dev_accuracy": {
+    "easy": 0.8867,
+    "hard": 0.0067,
+    "middle": 0.1933
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 6,
+   "loss_weighted_tokens": 15575,
+   "finished_at": "2026-11-27T13:50:48+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T12:48:38+00:00"
+  },
+  {
+   "name": "random-4000",
+   "set": "random-4000",
+   "seed": 1,
+   "rank": 16,
+   "learning_rate": 0.00018,
+   "batch_size": 32,
+   "epochs": 4,
+   "set_fingerprint": "b2b36b20e4c2",
+   "items": 4301,
+   "set_train_tokens": 435090,
+   "train_tokens": 1740360,
+   "updates": 496,
+   "tokens_per_update": 3500,
+   "items_per_update": 34.7,
+   "train_seconds": 4251.7,
+   "seconds_per_update": 8.57,
+   "median_seconds_per_update": 6.08,
+   "run_seconds": 4507.7,
+   "stalls": {
+    "updates": 13,
+    "seconds": 850.7,
+    "longest_s": 111.0
+   },
+   "loss_first": 3.19475,
+   "loss_last": 2.01489,
+   "group_losses": [
+    2.78681,
+    2.47197,
+    2.29402,
+    2.45534,
+    2.5446,
+    2.53994,
+    2.4534,
+    2.42337,
+    2.35331,
+    2.34137,
+    2.18779,
+    2.29706,
+    2.33263,
+    2.47936,
+    2.25144,
+    2.15908,
+    2.0236,
+    2.13254,
+    2.22052,
+    2.23929,
+    2.02649,
+    2.13793,
+    2.33543,
+    2.16124,
+    1.88902,
+    1.9165,
+    2.0315,
+    1.92189,
+    1.96677,
+    1.97909,
+    2.10442
+   ],
+   "tinker_path": "tinker://268cb477-1776-5757-972a-1f10bc34dea7:train:0/sampler_weights/random-4000-20261127-150417",
+   "checkpoint": {
+    "base_model": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
+    "lora_rank": 16,
+    "size_bytes": 738789750,
+    "expires_at": "2026-12-27T15:04:31.862218+00:00",
+    "checkpoint_type": "sampler"
+   },
+   "checkpoint_ttl_days": 30,
+   "dev_loss_before": {
+    "easy": 0.4469,
+    "middle": 2.98137,
+    "hard": 5.25643
+   },
+   "dev_loss": {
+    "easy": 0.30488,
+    "middle": 2.38477,
+    "hard": 4.6519
+   },
+   "dev_accuracy": {
+    "easy": 0.8933,
+    "hard": 0.0,
+    "middle": 0.1733
+   },
+   "dev_items": 450,
+   "dev_thinking_tokens": 0,
+   "dev_unfinished_replies": 0,
+   "loss_weighted_tokens": 18328,
+   "finished_at": "2026-11-27T15:06:14+00:00",
+   "service_events": {},
+   "started_at": "2026-11-27T13:51:06+00:00"
   }
  ],
  "totals": {
-  "runs": 7,
-  "updates": 1764,
-  "train_tokens": 6169264,
-  "update_hours": 4.7,
-  "run_hours": 5.2,
-  "seconds_per_update": 9.6,
-  "stalled_updates": 61,
-  "stalled_seconds": 5492.6,
+  "runs": 18,
+  "updates": 3960,
+  "train_tokens": 13886592,
+  "update_hours": 9.55,
+  "run_hours": 10.7,
+  "seconds_per_update": 8.68,
+  "stalled_updates": 116,
+  "stalled_seconds": 8844.2,
   "queue_events": {
    "paused_rate_limit": 2
   },
-  "checkpoint_bytes": 5171528322
+  "checkpoint_bytes": 13298215698
  },
  "overlap_with_evaluation": {
   "alone": {
-   "updates": 420,
-   "median_s": 5.93,
-   "mean_s": 8.09
+   "updates": 696,
+   "median_s": 5.92,
+   "mean_s": 8.14
   },
   "while_evaluating": {
-   "updates": 1344,
-   "median_s": 5.69,
-   "mean_s": 10.07
+   "updates": 3264,
+   "median_s": 5.66,
+   "mean_s": 8.79
   },
   "median_ratio": 0.96,
-  "mean_ratio": 1.24
+  "mean_ratio": 1.08
  },
  "failures": [],
  "notes": [
@@ -605,7 +1400,7 @@
   "Every run trains in its own process. The third run started in the first process sat in the service's queue for seven minutes, with `paused_rate_limit` reported 13 times and no update made, as the third pilot run had. The process was stopped at 05:41 UTC and the run began two minutes into a fresh one. A run still waits about two minutes in the queue before its first update."
  ],
  "evaluation_status": {
-  "at": "2026-11-27T09:32:16+00:00",
+  "at": "2026-11-27T15:05:31+00:00",
   "states": {
    "base": {
     "done": 5776,
@@ -632,6 +1427,50 @@
     "of": 5776
    },
    "random-2000-s3": {
+    "done": 5776,
+    "of": 5776
+   },
+   "shuffled-labels-2000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "easy-2000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "hard-2000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "length-matched-random-2000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-250": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-250": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-500": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-500": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-1000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "random-1000": {
+    "done": 5776,
+    "of": 5776
+   },
+   "middle-4000": {
     "done": 5776,
     "of": 5776
    },

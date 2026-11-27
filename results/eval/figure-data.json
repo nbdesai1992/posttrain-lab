@@ -1,0 +1,952 @@
+{
+ "generated_at": "2026-11-27T15:37:47+00:00",
+ "main_adapter": "middle-2000-s1",
+ "base_gap": {
+  "gsm8k": {
+   "base_fast": 0.3745,
+   "base_reasoning": 0.9666
+  },
+  "mbpp": {
+   "base_fast": 0.821,
+   "base_reasoning": 0.9455
+  }
+ },
+ "targets_by_state": [
+  {
+   "state": "base",
+   "setting": "fast",
+   "set": null,
+   "seed": null,
+   "gsm8k": {
+    "score": 0.3745,
+    "low": 0.348,
+    "high": 0.4011,
+    "minus_base": null,
+    "gap_closed": null
+   },
+   "mbpp": {
+    "score": 0.821,
+    "low": 0.7743,
+    "high": 0.8677,
+    "minus_base": null,
+    "gap_closed": null
+   }
+  },
+  {
+   "state": "middle-2000-s1",
+   "setting": "fast",
+   "set": "middle-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4208,
+    "low": 0.3927,
+    "high": 0.4473,
+    "minus_base": 0.0462,
+    "gap_closed": 0.0781
+   },
+   "mbpp": {
+    "score": 0.856,
+    "low": 0.8132,
+    "high": 0.8988,
+    "minus_base": 0.035,
+    "gap_closed": 0.2812
+   }
+  },
+  {
+   "state": "random-2000-s1",
+   "setting": "fast",
+   "set": "random-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4276,
+    "low": 0.4011,
+    "high": 0.4534,
+    "minus_base": 0.0531,
+    "gap_closed": 0.0896
+   },
+   "mbpp": {
+    "score": 0.8366,
+    "low": 0.7899,
+    "high": 0.8794,
+    "minus_base": 0.0156,
+    "gap_closed": 0.125
+   }
+  },
+  {
+   "state": "middle-2000-s2",
+   "setting": "fast",
+   "set": "middle-2000-draw2",
+   "seed": 2,
+   "gsm8k": {
+    "score": 0.4299,
+    "low": 0.4026,
+    "high": 0.4556,
+    "minus_base": 0.0553,
+    "gap_closed": 0.0935
+   },
+   "mbpp": {
+    "score": 0.856,
+    "low": 0.8093,
+    "high": 0.8988,
+    "minus_base": 0.035,
+    "gap_closed": 0.2812
+   }
+  },
+  {
+   "state": "random-2000-s2",
+   "setting": "fast",
+   "set": "random-2000-draw2",
+   "seed": 2,
+   "gsm8k": {
+    "score": 0.445,
+    "low": 0.4185,
+    "high": 0.4723,
+    "minus_base": 0.0705,
+    "gap_closed": 0.1191
+   },
+   "mbpp": {
+    "score": 0.8366,
+    "low": 0.7899,
+    "high": 0.8794,
+    "minus_base": 0.0156,
+    "gap_closed": 0.125
+   }
+  },
+  {
+   "state": "middle-2000-s3",
+   "setting": "fast",
+   "set": "middle-2000-draw3",
+   "seed": 3,
+   "gsm8k": {
+    "score": 0.4481,
+    "low": 0.4215,
+    "high": 0.4738,
+    "minus_base": 0.0735,
+    "gap_closed": 0.1242
+   },
+   "mbpp": {
+    "score": 0.8366,
+    "low": 0.7899,
+    "high": 0.8794,
+    "minus_base": 0.0156,
+    "gap_closed": 0.125
+   }
+  },
+  {
+   "state": "random-2000-s3",
+   "setting": "fast",
+   "set": "random-2000-draw3",
+   "seed": 3,
+   "gsm8k": {
+    "score": 0.4458,
+    "low": 0.4192,
+    "high": 0.4716,
+    "minus_base": 0.0713,
+    "gap_closed": 0.1204
+   },
+   "mbpp": {
+    "score": 0.8482,
+    "low": 0.8016,
+    "high": 0.8911,
+    "minus_base": 0.0272,
+    "gap_closed": 0.2188
+   }
+  },
+  {
+   "state": "shuffled-labels-2000",
+   "setting": "fast",
+   "set": "shuffled-labels-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.0,
+    "low": 0.0,
+    "high": 0.0,
+    "minus_base": -0.3745,
+    "gap_closed": -0.6325
+   },
+   "mbpp": {
+    "score": 0.0,
+    "low": 0.0,
+    "high": 0.0,
+    "minus_base": -0.821,
+    "gap_closed": -6.5938
+   }
+  },
+  {
+   "state": "easy-2000",
+   "setting": "fast",
+   "set": "easy-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4208,
+    "low": 0.395,
+    "high": 0.4466,
+    "minus_base": 0.0462,
+    "gap_closed": 0.0781
+   },
+   "mbpp": {
+    "score": 0.8405,
+    "low": 0.7938,
+    "high": 0.8872,
+    "minus_base": 0.0195,
+    "gap_closed": 0.1562
+   }
+  },
+  {
+   "state": "hard-2000",
+   "setting": "fast",
+   "set": "hard-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.3723,
+    "low": 0.3457,
+    "high": 0.3988,
+    "minus_base": -0.0023,
+    "gap_closed": -0.0038
+   },
+   "mbpp": {
+    "score": 0.8405,
+    "low": 0.7938,
+    "high": 0.8833,
+    "minus_base": 0.0195,
+    "gap_closed": 0.1562
+   }
+  },
+  {
+   "state": "length-matched-random-2000",
+   "setting": "fast",
+   "set": "length-matched-random-2000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4337,
+    "low": 0.4079,
+    "high": 0.461,
+    "minus_base": 0.0591,
+    "gap_closed": 0.0999
+   },
+   "mbpp": {
+    "score": 0.8327,
+    "low": 0.786,
+    "high": 0.8755,
+    "minus_base": 0.0117,
+    "gap_closed": 0.0938
+   }
+  },
+  {
+   "state": "middle-250",
+   "setting": "fast",
+   "set": "middle-250",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.417,
+    "low": 0.3904,
+    "high": 0.4435,
+    "minus_base": 0.0425,
+    "gap_closed": 0.0717
+   },
+   "mbpp": {
+    "score": 0.8482,
+    "low": 0.8016,
+    "high": 0.8911,
+    "minus_base": 0.0272,
+    "gap_closed": 0.2188
+   }
+  },
+  {
+   "state": "random-250",
+   "setting": "fast",
+   "set": "random-250",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4049,
+    "low": 0.3791,
+    "high": 0.4321,
+    "minus_base": 0.0303,
+    "gap_closed": 0.0512
+   },
+   "mbpp": {
+    "score": 0.8288,
+    "low": 0.7821,
+    "high": 0.8755,
+    "minus_base": 0.0078,
+    "gap_closed": 0.0625
+   }
+  },
+  {
+   "state": "middle-500",
+   "setting": "fast",
+   "set": "middle-500",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4139,
+    "low": 0.3882,
+    "high": 0.4405,
+    "minus_base": 0.0394,
+    "gap_closed": 0.0666
+   },
+   "mbpp": {
+    "score": 0.8444,
+    "low": 0.7977,
+    "high": 0.8872,
+    "minus_base": 0.0233,
+    "gap_closed": 0.1875
+   }
+  },
+  {
+   "state": "random-500",
+   "setting": "fast",
+   "set": "random-500",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.395,
+    "low": 0.3684,
+    "high": 0.4208,
+    "minus_base": 0.0205,
+    "gap_closed": 0.0346
+   },
+   "mbpp": {
+    "score": 0.8444,
+    "low": 0.7977,
+    "high": 0.8872,
+    "minus_base": 0.0233,
+    "gap_closed": 0.1875
+   }
+  },
+  {
+   "state": "middle-1000",
+   "setting": "fast",
+   "set": "middle-1000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4276,
+    "low": 0.4011,
+    "high": 0.4541,
+    "minus_base": 0.0531,
+    "gap_closed": 0.0896
+   },
+   "mbpp": {
+    "score": 0.8249,
+    "low": 0.7782,
+    "high": 0.8716,
+    "minus_base": 0.0039,
+    "gap_closed": 0.0312
+   }
+  },
+  {
+   "state": "random-1000",
+   "setting": "fast",
+   "set": "random-1000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4117,
+    "low": 0.3859,
+    "high": 0.4375,
+    "minus_base": 0.0371,
+    "gap_closed": 0.0627
+   },
+   "mbpp": {
+    "score": 0.8405,
+    "low": 0.7977,
+    "high": 0.8833,
+    "minus_base": 0.0195,
+    "gap_closed": 0.1562
+   }
+  },
+  {
+   "state": "middle-4000",
+   "setting": "fast",
+   "set": "middle-4000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4496,
+    "low": 0.423,
+    "high": 0.4754,
+    "minus_base": 0.0751,
+    "gap_closed": 0.1268
+   },
+   "mbpp": {
+    "score": 0.8599,
+    "low": 0.8132,
+    "high": 0.8988,
+    "minus_base": 0.0389,
+    "gap_closed": 0.3125
+   }
+  },
+  {
+   "state": "random-4000",
+   "setting": "fast",
+   "set": "random-4000",
+   "seed": 1,
+   "gsm8k": {
+    "score": 0.4625,
+    "low": 0.4352,
+    "high": 0.4882,
+    "minus_base": 0.0879,
+    "gap_closed": 0.1485
+   },
+   "mbpp": {
+    "score": 0.8521,
+    "low": 0.8093,
+    "high": 0.8949,
+    "minus_base": 0.0311,
+    "gap_closed": 0.25
+   }
+  },
+  {
+   "state": "prompt-only",
+   "setting": "fast",
+   "set": null,
+   "seed": null,
+   "gsm8k": {
+    "score": 0.3594,
+    "low": 0.3351,
+    "high": 0.3851,
+    "minus_base": -0.0152,
+    "gap_closed": -0.0256
+   },
+   "mbpp": {
+    "score": 0.8444,
+    "low": 0.7977,
+    "high": 0.8872,
+    "minus_base": 0.0233,
+    "gap_closed": 0.1875
+   }
+  }
+ ],
+ "main_comparison": {
+  "gsm8k": {
+   "middle_minus_random": {
+    "n": 1319,
+    "estimate": -0.0066,
+    "low": -0.0184,
+    "high": 0.0051,
+    "first": [
+     "random-2000-s1",
+     "random-2000-s2",
+     "random-2000-s3"
+    ],
+    "second": [
+     "middle-2000-s1",
+     "middle-2000-s2",
+     "middle-2000-s3"
+    ]
+   },
+   "seed_range": {
+    "low": -0.0152,
+    "high": 0.0023
+   },
+   "middle_scores": [
+    0.4208,
+    0.4299,
+    0.4481
+   ],
+   "random_scores": [
+    0.4276,
+    0.445,
+    0.4458
+   ],
+   "controls": {
+    "easy-2000": {
+     "n": 1319,
+     "estimate": 0.0,
+     "low": -0.0197,
+     "high": 0.0212,
+     "gained": 100,
+     "lost": 100,
+     "mcnemar_p": 1.0
+    },
+    "hard-2000": {
+     "n": 1319,
+     "estimate": 0.0485,
+     "low": 0.0265,
+     "high": 0.072,
+     "gained": 149,
+     "lost": 85,
+     "mcnemar_p": 3.4e-05
+    },
+    "shuffled-labels-2000": {
+     "n": 1319,
+     "estimate": 0.4208,
+     "low": 0.3927,
+     "high": 0.4473,
+     "gained": 555,
+     "lost": 0,
+     "mcnemar_p": 0.0
+    },
+    "length-matched-random-2000": {
+     "n": 1319,
+     "estimate": -0.0129,
+     "low": -0.0326,
+     "high": 0.0053,
+     "gained": 79,
+     "lost": 96,
+     "mcnemar_p": 0.226375
+    }
+   }
+  },
+  "mbpp": {
+   "middle_minus_random": {
+    "n": 257,
+    "estimate": 0.0091,
+    "low": -0.0078,
+    "high": 0.0259,
+    "first": [
+     "random-2000-s1",
+     "random-2000-s2",
+     "random-2000-s3"
+    ],
+    "second": [
+     "middle-2000-s1",
+     "middle-2000-s2",
+     "middle-2000-s3"
+    ]
+   },
+   "seed_range": {
+    "low": -0.0117,
+    "high": 0.0195
+   },
+   "middle_scores": [
+    0.856,
+    0.856,
+    0.8366
+   ],
+   "random_scores": [
+    0.8366,
+    0.8366,
+    0.8482
+   ],
+   "controls": {
+    "easy-2000": {
+     "n": 257,
+     "estimate": 0.0156,
+     "low": -0.0117,
+     "high": 0.0428,
+     "gained": 9,
+     "lost": 5,
+     "mcnemar_p": 0.42395
+    },
+    "hard-2000": {
+     "n": 257,
+     "estimate": 0.0156,
+     "low": -0.0117,
+     "high": 0.0428,
+     "gained": 9,
+     "lost": 5,
+     "mcnemar_p": 0.42395
+    },
+    "shuffled-labels-2000": {
+     "n": 257,
+     "estimate": 0.856,
+     "low": 0.8132,
+     "high": 0.8988,
+     "gained": 220,
+     "lost": 0,
+     "mcnemar_p": 0.0
+    },
+    "length-matched-random-2000": {
+     "n": 257,
+     "estimate": 0.0233,
+     "low": 0.0,
+     "high": 0.0506,
+     "gained": 8,
+     "lost": 2,
+     "mcnemar_p": 0.109375
+    }
+   }
+  }
+ },
+ "size_sweep": {
+  "gsm8k": {
+   "middle": [
+    {
+     "size": 250,
+     "score": 0.417,
+     "low": 0.3904,
+     "high": 0.4435
+    },
+    {
+     "size": 500,
+     "score": 0.4139,
+     "low": 0.3882,
+     "high": 0.4405
+    },
+    {
+     "size": 1000,
+     "score": 0.4276,
+     "low": 0.4011,
+     "high": 0.4541
+    },
+    {
+     "size": 2000,
+     "score": 0.4208,
+     "low": 0.3927,
+     "high": 0.4473
+    },
+    {
+     "size": 4000,
+     "score": 0.4496,
+     "low": 0.423,
+     "high": 0.4754
+    }
+   ],
+   "random": [
+    {
+     "size": 250,
+     "score": 0.4049,
+     "low": 0.3791,
+     "high": 0.4321
+    },
+    {
+     "size": 500,
+     "score": 0.395,
+     "low": 0.3684,
+     "high": 0.4208
+    },
+    {
+     "size": 1000,
+     "score": 0.4117,
+     "low": 0.3859,
+     "high": 0.4375
+    },
+    {
+     "size": 2000,
+     "score": 0.4276,
+     "low": 0.4011,
+     "high": 0.4534
+    },
+    {
+     "size": 4000,
+     "score": 0.4625,
+     "low": 0.4352,
+     "high": 0.4882
+    }
+   ]
+  },
+  "mbpp": {
+   "middle": [
+    {
+     "size": 250,
+     "score": 0.8482,
+     "low": 0.8016,
+     "high": 0.8911
+    },
+    {
+     "size": 500,
+     "score": 0.8444,
+     "low": 0.7977,
+     "high": 0.8872
+    },
+    {
+     "size": 1000,
+     "score": 0.8249,
+     "low": 0.7782,
+     "high": 0.8716
+    },
+    {
+     "size": 2000,
+     "score": 0.856,
+     "low": 0.8132,
+     "high": 0.8988
+    },
+    {
+     "size": 4000,
+     "score": 0.8599,
+     "low": 0.8132,
+     "high": 0.8988
+    }
+   ],
+   "random": [
+    {
+     "size": 250,
+     "score": 0.8288,
+     "low": 0.7821,
+     "high": 0.8755
+    },
+    {
+     "size": 500,
+     "score": 0.8444,
+     "low": 0.7977,
+     "high": 0.8872
+    },
+    {
+     "size": 1000,
+     "score": 0.8405,
+     "low": 0.7977,
+     "high": 0.8833
+    },
+    {
+     "size": 2000,
+     "score": 0.8366,
+     "low": 0.7899,
+     "high": 0.8794
+    },
+    {
+     "size": 4000,
+     "score": 0.8521,
+     "low": 0.8093,
+     "high": 0.8949
+    }
+   ]
+  }
+ },
+ "watch_cells": [
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "before": 0.71,
+   "after": 0.722,
+   "difference": 0.012,
+   "low": -0.012,
+   "high": 0.036,
+   "regression": false
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "before": 0.634,
+   "after": 0.67,
+   "difference": 0.036,
+   "low": 0.008,
+   "high": 0.064,
+   "regression": false
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "before": 0.7006,
+   "after": 0.7029,
+   "difference": 0.0023,
+   "low": -0.0286,
+   "high": 0.031,
+   "regression": false
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "before": 0.724,
+   "after": 0.786,
+   "difference": 0.062,
+   "low": 0.036,
+   "high": 0.09,
+   "regression": false
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "before": 0.7756,
+   "after": 0.7828,
+   "difference": 0.0071,
+   "low": -0.0204,
+   "high": 0.0426,
+   "regression": false
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "before": 0.962,
+   "after": 0.962,
+   "difference": 0.0,
+   "low": -0.016,
+   "high": 0.016,
+   "regression": false
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "before": 0.678,
+   "after": 0.736,
+   "difference": 0.058,
+   "low": 0.016,
+   "high": 0.098,
+   "regression": false
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "before": 0.564,
+   "after": 0.578,
+   "difference": 0.014,
+   "low": -0.016,
+   "high": 0.046,
+   "regression": false
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "before": 0.285,
+   "after": 0.255,
+   "difference": -0.03,
+   "low": -0.09,
+   "high": 0.03,
+   "regression": true
+  }
+ ],
+ "reasoning_pass": [
+  {
+   "benchmark": "gsm8k",
+   "title": "GSM8K",
+   "base": 0.9666,
+   "adapter": 0.8431,
+   "difference": -0.1236,
+   "low": -0.1425,
+   "high": -0.1069
+  },
+  {
+   "benchmark": "mbpp",
+   "title": "MBPP (sanitized test split)",
+   "base": 0.9455,
+   "adapter": 0.9416,
+   "difference": -0.0039,
+   "low": -0.0233,
+   "high": 0.0117
+  },
+  {
+   "benchmark": "judgebench",
+   "title": "JudgeBench, pairwise",
+   "base": 0.756,
+   "adapter": 0.8,
+   "difference": 0.044,
+   "low": 0.014,
+   "high": 0.076
+  },
+  {
+   "benchmark": "judgebench_pointwise",
+   "title": "JudgeBench, one response at a time",
+   "base": 0.75,
+   "adapter": 0.772,
+   "difference": 0.022,
+   "low": -0.006,
+   "high": 0.05
+  },
+  {
+   "benchmark": "rewardbench2",
+   "title": "RewardBench 2, best of four",
+   "base": 0.795,
+   "adapter": 0.8174,
+   "difference": 0.0224,
+   "low": -0.0067,
+   "high": 0.0546
+  },
+  {
+   "benchmark": "llmbar",
+   "title": "LLMBar",
+   "base": 0.85,
+   "adapter": 0.408,
+   "difference": -0.442,
+   "low": -0.496,
+   "high": -0.388
+  },
+  {
+   "benchmark": "bfcl",
+   "title": "BFCL V4, single turn",
+   "base": 0.7935,
+   "adapter": 0.8015,
+   "difference": 0.008,
+   "low": -0.0216,
+   "high": 0.0429
+  },
+  {
+   "benchmark": "jsonschemabench",
+   "title": "JSONSchemaBench (sample of 1,000)",
+   "base": 0.984,
+   "adapter": 0.968,
+   "difference": -0.016,
+   "low": -0.032,
+   "high": -0.002
+  },
+  {
+   "benchmark": "ifeval",
+   "title": "IFEval",
+   "base": 0.87,
+   "adapter": 0.852,
+   "difference": -0.018,
+   "low": -0.046,
+   "high": 0.008
+  },
+  {
+   "benchmark": "mmlu_pro",
+   "title": "MMLU-Pro (sample of 500)",
+   "base": 0.802,
+   "adapter": 0.774,
+   "difference": -0.028,
+   "low": -0.054,
+   "high": -0.002
+  },
+  {
+   "benchmark": "bfcl_multi_turn",
+   "title": "BFCL V4, multi turn (sample of 200)",
+   "base": 0.37,
+   "adapter": 0.335,
+   "difference": -0.035,
+   "low": -0.1,
+   "high": 0.03
+  }
+ ],
+ "decisions": [
+  {
+   "rule": "P2",
+   "benchmark": "gsm8k",
+   "outcome": "holds"
+  },
+  {
+   "rule": "P2, against prompt-only",
+   "benchmark": "gsm8k",
+   "outcome": "holds"
+  },
+  {
+   "rule": "P3",
+   "benchmark": "gsm8k",
+   "outcome": "wrong"
+  },
+  {
+   "rule": "P3, against easy only",
+   "benchmark": "gsm8k",
+   "outcome": "counts against"
+  },
+  {
+   "rule": "P3, against hard only",
+   "benchmark": "gsm8k",
+   "outcome": "supports"
+  },
+  {
+   "rule": "P4",
+   "benchmark": "gsm8k",
+   "outcome": "the two differ"
+  },
+  {
+   "rule": "P2",
+   "benchmark": "mbpp",
+   "outcome": "holds"
+  },
+  {
+   "rule": "P2, against prompt-only",
+   "benchmark": "mbpp",
+   "outcome": "wrong"
+  },
+  {
+   "rule": "P3",
+   "benchmark": "mbpp",
+   "outcome": "wrong"
+  },
+  {
+   "rule": "P3, against easy only",
+   "benchmark": "mbpp",
+   "outcome": "counts against"
+  },
+  {
+   "rule": "P3, against hard only",
+   "benchmark": "mbpp",
+   "outcome": "counts against"
+  },
+  {
+   "rule": "P4",
+   "benchmark": "mbpp",
+   "outcome": "the two differ"
+  },
+  {
+   "rule": "P5",
+   "benchmark": null,
+   "outcome": "wrong"
+  }
+ ]
+}

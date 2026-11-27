@@ -1,16 +1,16 @@
 # Survey report
 
-The base model `thinkingmachines/Inkling-2-Mini:peft:65536:free` on public benchmarks, generated 2026-11-27T00:01:26+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every score comes from this repository's harness at temperature 0 with one prompt per benchmark, and every reply was graded by a program. Scores are percentages with 95% bootstrap intervals. The full data is in `summary.json`, and the raw replies are in `runs/survey/`.
+The base model `thinkingmachines/Inkling-2-Mini:peft:65536:free` on public benchmarks, generated 2026-11-27T15:39:55+00:00 with tinker 0.40.1, tml-renderers 0.5.0 and tinker-cookbook 0.7.1. Every score comes from this repository's harness at temperature 0 with one prompt per benchmark, and every reply was graded by a program. Scores are percentages with 95% bootstrap intervals. The full data is in `summary.json`, and the raw replies are in `runs/survey/`.
 
 The settings:
 
 - `fast` is a forced direct answer at effort 0.0 (no reasoning block).
-- `reasoning` is effort 0.0, free-running, with an 8,192-token limit: the reference and teacher from here on.
+- `reasoning` is effort 0.0, free-running, with an 8,192-token limit: the reference, and the filter for the training data, from here on.
 - `effort 0.9` is effort 0.9, free-running, with an 8,192-token limit: measured once and not used as the reference.
 
 ## The reference from here on
 
-The study's reference line, and the teacher for its training data, is the reasoning setting: free-running effort 0.0 with the 8,192-token limit. Effort 0.9 was the first choice and was measured in full with the same limit. It is set aside because on the judging and knowledge benchmarks a fifth to a third of its replies ran to the limit without giving an answer, while effort 0.0 reasons for about half as long and is cut off less often. Paired on the same items, the reasoning setting is ahead of effort 0.9 on 6 of 11 benchmarks with an interval that excludes zero, and behind on 0. Its estimate is lower, with an interval that includes zero, on LLMBar, -0.2 (-2.0 to +1.4); BFCL V4, single turn, -0.0 (-2.2 to +2.2); BFCL V4, multi turn (sample of 200), -3.5 (-10.0 to +3.5). Effort 0.9 stays in every table as measured and is not run again.
+The study's reference line, and the setting whose grades decide which training problems are kept, is the reasoning setting: free-running effort 0.0 with the 8,192-token limit. Effort 0.9 was the first choice and was measured in full with the same limit. It is set aside because on the judging and knowledge benchmarks a fifth to a third of its replies ran to the limit without giving an answer, while effort 0.0 reasons for about half as long and is cut off less often. Paired on the same items, the reasoning setting is ahead of effort 0.9 on 6 of 11 benchmarks with an interval that excludes zero, and behind on 0. Its estimate is lower, with an interval that includes zero, on LLMBar, -0.2 (-2.0 to +1.4); BFCL V4, single turn, -0.0 (-2.2 to +2.2); BFCL V4, multi turn (sample of 200), -3.5 (-10.0 to +3.5). Effort 0.9 stays in every table as measured and is not run again.
 
 ## Capability map
 

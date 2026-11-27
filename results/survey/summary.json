@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T00:01:26+00:00",
+ "generated_at": "2026-11-27T15:39:55+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "versions": {
   "tinker": "0.40.1",
@@ -11,7 +11,7 @@
  "seed": 20261126,
  "settings": {
   "fast": "a forced direct answer at effort 0.0 (no reasoning block)",
-  "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference and teacher from here on",
+  "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference, and the filter for the training data, from here on",
   "slow": "effort 0.9, free-running, with an 8,192-token limit: measured once and not used as the reference",
   "effort_0": "the reasoning setting on a fixed subsample: the first look at it, now part of the full pass"
  },
@@ -3389,33 +3389,38 @@
  "service_events": {},
  "account_after": {
   "storage_rate_usd_per_gb_month": 0.0,
-  "checkpoint_count": 1,
-  "checkpoint_bytes": 738789750,
+  "checkpoint_count": 25,
+  "checkpoint_bytes": 18839090218,
   "storage_estimated_monthly_cost_usd": 0.0,
-  "checkpoints_listed": 1,
-  "checkpoints_listed_bytes": 738789750,
-  "usage_window_start": "2026-11-26T01:00:00+00:00",
+  "checkpoints_listed": 25,
+  "checkpoints_listed_bytes": 18839090218,
+  "usage_window_start": "2026-11-26T16:00:00+00:00",
   "usage_cost_data_through": "2026-11-27T00:00:00+00:00",
   "usage_by_model_and_type": {
-   "thinkingmachines/Inkling-2-Mini:peft:65536:free | sampling_sample": {
-    "tokens": 51478,
-    "estimated_cost_usd": 0.0,
-    "events": 7
-   },
    "thinkingmachines/Inkling-2-Mini:peft:65536:free | sampling_prefill": {
-    "tokens": 219390,
+    "tokens": 455828852,
     "estimated_cost_usd": 0.0,
-    "events": 8
+    "events": 99
    },
    "thinkingmachines/Inkling-2-Mini:peft:65536:free | training": {
-    "tokens": 44610,
+    "tokens": 10962796,
     "estimated_cost_usd": 0.0,
-    "events": 1
+    "events": 24
+   },
+   "thinkingmachines/Inkling-2-Mini:peft:65536:free | sampling_sample": {
+    "tokens": 68793300,
+    "estimated_cost_usd": 0.0,
+    "events": 53
+   },
+   "(none) | storage": {
+    "tokens": 0,
+    "estimated_cost_usd": 0.0,
+    "events": 16
    },
    "thinkingmachines/Inkling-2-Mini:peft:65536:free | checkpoint": {
     "tokens": 0,
     "estimated_cost_usd": 0.0,
-    "events": 1
+    "events": 11
    }
   },
   "usage_estimated_cost_usd": 0.0
