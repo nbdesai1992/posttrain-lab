@@ -186,6 +186,23 @@ def test_training_sets_are_nested_matched_and_disjoint_from_what_is_held_out():
         assert len(set(entry["items"])) == entry["n_items"] and entry["train_tokens"] == sum(tokens[i] for i in entry["items"])
 
 
+def test_the_pilot_slice_is_held_out_and_a_small_cell_is_marked_short():
+    items = labeled_items()
+    built = build_sets(items, seed=9, dev_per_cell=30, pilot_items=120, sizes=(50, 100, 400), main_size=100)
+    cell = {i["id"]: i["cell"] for i in items}
+    pilot = built["pilot"]
+    assert pilot["n_items"] == len(set(pilot["train"])) == 120 and {cell[i] for i in pilot["train"]} == {"middle"}
+    kept_apart = set(pilot["train"]) | {i for ids in built["dev"].values() for i in ids} | set(built["prompt_examples"])
+    assert len(kept_apart) == built["held_out"] == 120 + sum(len(ids) for ids in built["dev"].values()) + 8
+    assert all(not kept_apart & set(entry["items"]) for entry in built["sets"].values())
+    assert not any(entry.get("short") for entry in built["sets"].values())
+    # With few hard items the hard set cannot reach the middle band's tokens, and says so.
+    few_hard = [i for i in items if i["cell"] != "hard"] + [i for i in items if i["cell"] == "hard"][:60]
+    sets = build_sets(few_hard, seed=9, dev_per_cell=30, sizes=(50, 100, 400), main_size=100)["sets"]
+    assert sets["hard-100"]["short"] and sets["hard-100"]["train_tokens"] < sets["hard-100"]["token_budget"]
+    assert not sets["easy-100"]["short"] and not sets["middle-400"]["short"]
+
+
 def test_shuffled_labels_and_length_matching():
     items = labeled_items()
     built = build_sets(items, seed=9, dev_per_cell=30, sizes=(50, 100, 400), main_size=100)
