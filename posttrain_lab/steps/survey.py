@@ -39,7 +39,8 @@ SETTINGS = {
     "slow": (DEFAULT_EFFORT, False),
     "effort_0": (FAST_EFFORT, False),
 }
-# The reasoning setting is the study's reference and teacher: free-running effort 0.0
+# The reasoning setting is the study's reference and the filter's judge of which training
+# problems to keep (training targets are the programs' answers): free-running effort 0.0
 # with the same 8,192-token limit as every other free-running setting. "slow" (effort
 # 0.9) stays in the record as measured and is not rerun. "effort_0" was the first look
 # at effort 0.0 on a subsample. Its requests are identical to the reasoning setting's,
@@ -48,7 +49,7 @@ SUBSAMPLE_ONLY = {"effort_0"}
 SETTING_LABELS = {"fast": "fast", "reasoning": "reasoning", "slow": "effort 0.9", "effort_0": "effort 0.0, long limit"}
 SETTING_NOTES = {
     "fast": "a forced direct answer at effort 0.0 (no reasoning block)",
-    "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference and teacher from here on",
+    "reasoning": "effort 0.0, free-running, with an 8,192-token limit: the reference, and the filter for the training data, from here on",
     "slow": "effort 0.9, free-running, with an 8,192-token limit: measured once and not used as the reference",
     "effort_0": "the reasoning setting on a fixed subsample: the first look at it, now part of the full pass",
 }
@@ -641,7 +642,7 @@ def render_report(summary: dict) -> str:
         + ("Its estimate is lower, with an interval that includes zero, on " + "; ".join(f"{b['title']}, {signed(b['reasoning_minus_slow'])}" for b in lower) + ". " if lower else "")
     )
     add(
-        "The study's reference line, and the teacher for its training data, is the reasoning setting: free-running effort 0.0 "
+        "The study's reference line, and the setting whose grades decide which training problems are kept, is the reasoning setting: free-running effort 0.0 "
         "with the 8,192-token limit. Effort 0.9 was the first choice and was measured in full with the same limit. It is set aside "
         "because on the judging and knowledge benchmarks a fifth to a third of its replies ran to the limit without giving an answer, "
         "while effort 0.0 reasons for about half as long and is cut off less often. "

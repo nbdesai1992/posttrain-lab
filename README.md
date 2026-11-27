@@ -52,7 +52,7 @@ Each of the 11,870 that remained was run in the fast setting and in the reasonin
 | fast right | easy, 3,162 | rare, 2 |
 | fast wrong | middle band, 6,447 | hard, 2,259 |
 
-The middle band is where reasoning helps, and it is the data the main training arm uses. Nearly all of the hard cell (2,139 of 2,259) is there because the reasoning reply reached its 8,192-token limit before giving an answer, so that cell mostly holds problems that are too long for the teacher.
+The middle band is where reasoning helps, and it is the data the main training arm uses. Nearly all of the hard cell (2,139 of 2,259) is there because the reasoning reply reached its 8,192-token limit before giving an answer, so that cell mostly holds problems that run past the reasoning setting's token limit. Every training target is the answer the program computed; the reasoning setting only decides which cell a problem lands in.
 
 The training sets are drawn with fixed seeds and saved as lists of item ids in `results/data/sets.json`. Sets that are compared with each other are matched on training tokens. There are middle-band sets of 250, 500, 1,000, 2,000 and 4,000 items, each inside the next, and random draws from all cells with the same token counts. At the size of the 2,000-item middle-band set there are also an easy-only set, a hard-only set, a copy of the middle-band set with its answers moved between items, and a random set matched item by item on length. Held out of all of them are 150 dev items from each cell, 500 middle-band items for the pilot that fixes rank and learning rate, and eight worked examples for a prompt-only arm. A training example is the prompt followed by the answer alone, rendered for the fast setting.
 
