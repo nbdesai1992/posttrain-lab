@@ -12,8 +12,9 @@ from posttrain_lab.data.sets import build_sets
 from posttrain_lab.steps.base import StepContext, run_step
 from posttrain_lab.steps.evaluate import Eval
 from posttrain_lab.steps.train import Train, fast_example, schedule, set_items, updates_per_epoch
+from posttrain_lab.client import RetryPolicy
 from posttrain_lab.store import JsonlStore
-from posttrain_lab.testing import FakeBackend
+from posttrain_lab.testing import FakeBackend, FakeTransient
 
 from conftest import run
 from test_survey import Parity
@@ -73,8 +74,20 @@ def test_train_records_each_run_and_decays_the_learning_rate(tmp_path, renderer,
     ctx, lines = context(tmp_path, renderer, "train", client, **config)
     assert run(run_step(Train(), ctx, dry_run=True)) == 0 and backend.training_calls == []
     assert run(run_step(Train(), ctx)) == 0
-    runs = {r["name"]: r for r in json.loads((ctx.results_dir / "runs.json").read_text())["runs"]}
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    runs = {r["name"]: r for r in summary["runs"]}
     main = runs["middle-s1"]
+    assert summary["complete"] and summary["planned_runs"] == [r["name"] for r in RUNS] and summary["totals"]["updates"] == 6 + 6 + 4
+    assert main["stalls"] == {"updates": 0, "seconds": 0.0, "longest_s": 0.0} and main["median_seconds_per_update"] == 0.5 and main["started_at"] <= main["finished_at"]
+    assert "losses" not in main and len(main["group_losses"]) == 2
+    progress = (ctx.results_dir / "PROGRESS.md").read_text()
+    assert "3 of 3 runs are done" in progress and "| middle-s1 | 6 |" in progress and "Still to run: nothing." in progress
+    report = (ctx.results_dir / "REPORT.md").read_text()
+    assert "| wrong-labels | shuffled-labels-10 |" in report and "tinker://" in report
+    figure = json.loads((ctx.results_dir / "figure-data.json").read_text())
+    assert [r["run"] for r in figure["runs"]] == [r["name"] for r in RUNS] and len(figure["runs"][0]["loss_by_group_of_updates"]) == 2
+    rows = [json.loads(line) for line in (ctx.runs_dir / "progress.jsonl").read_text().splitlines()]
+    assert rows[0]["update_seconds"] == [0.5, 0.5, 0.5] and rows[0]["eval_active"] is False and summary["overlap_with_evaluation"]["median_ratio"] is None
     assert (main["items"], main["updates"], main["rank"], main["learning_rate"], main["seed"]) == (10, 6, 16, 4e-4, 1)
     assert main["train_tokens"] == 2 * main["set_train_tokens"] and main["tinker_path"].startswith("tinker://")
     assert main["loss_last"] < main["loss_first"] and main["dev_items"] == 27 and main["dev_accuracy"] == {"easy": 1.0, "hard": 1.0, "middle": 1.0}
@@ -112,11 +125,67 @@ def test_train_stops_at_the_checkpoint_limit_and_refuses_a_paid_base(tmp_path, r
     backend.adapter_base_model = "thinkingmachines/Inkling-2-Mini"
     client, _ = make_client(backend)
     ctx, _ = context(tmp_path / "paid", renderer, "train", client, data_dir=str(data_dir), runs=RUNS[:1], batch_size=4, epochs=1)
-    from posttrain_lab.guard import PaidModelError
+    assert run(run_step(Train(), ctx)) == 1  # the adapter is never sampled, and the run stays pending
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert backend.sample_calls == [] and summary["runs"] == [] and not summary["complete"]
+    assert summary["failures"][0]["run"] == "middle-s1" and "PaidModelError" in summary["failures"][0]["error"]
+    assert "middle-s1 failed" in (ctx.results_dir / "PROGRESS.md").read_text()
 
-    with pytest.raises(PaidModelError):  # the adapter is never sampled, and the run stays pending
-        run(run_step(Train(), ctx))
-    assert backend.sample_calls == [] and not (ctx.results_dir / "runs.json").exists()
+
+def test_a_run_that_fails_leaves_the_others_to_finish(tmp_path, renderer, make_client, data_dir):
+    class Flaky(FakeBackend):
+        async def train_pipelined(self, run_handle, batches, learning_rate):
+            if self.training_calls.count("create") == 2 and not getattr(self, "failed", False):
+                self.failed = True
+                raise ConnectionError("the service went away")
+            return await super().train_pipelined(run_handle, batches, learning_rate)
+
+    backend = Flaky(renderer)
+    client, _ = make_client(backend, retry=RetryPolicy(max_attempts=1, call_timeout_s=5))
+    config = {"data_dir": str(data_dir), "runs": RUNS, "batch_size": 4, "epochs": 1, "updates_per_call": 8}
+    ctx, lines = context(tmp_path, renderer, "train", client, **config)
+    (tmp_path / "runs" / "eval").mkdir(parents=True)
+    (tmp_path / "runs" / "eval" / "ACTIVE").write_text("")  # another process is evaluating adapters
+    assert run(run_step(Train(), ctx)) == 1
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert [r["name"] for r in summary["runs"]] == ["middle-s1", "pilot-r8"] and not summary["complete"]
+    assert summary["failures"][0]["run"] == "wrong-labels" and backend.training_calls.count("save") == 2
+    assert "Still to run: wrong-labels." in (ctx.results_dir / "PROGRESS.md").read_text()
+    assert summary["overlap_with_evaluation"]["while_evaluating"]["updates"] == 3 + 2 and summary["overlap_with_evaluation"]["alone"]["updates"] == 0
+    # The next invocation trains only the run that failed.
+    client, _ = make_client(backend, retry=RetryPolicy(max_attempts=1, call_timeout_s=5))
+    ctx, _ = context(tmp_path, renderer, "train", client, **config)
+    assert run(run_step(Train(), ctx)) == 0 and backend.training_calls.count("create") == 4
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert summary["complete"] and [r["name"] for r in summary["runs"]] == [r["name"] for r in RUNS]
+
+
+def test_a_group_of_updates_sent_twice_or_a_rising_loss_ends_the_run(tmp_path, renderer, make_client, data_dir):
+    class Hiccup(FakeBackend):
+        async def train_pipelined(self, run_handle, batches, learning_rate):
+            if not getattr(self, "failed", False):
+                self.failed = True
+                raise FakeTransient("no answer")
+            return await super().train_pipelined(run_handle, batches, learning_rate)
+
+    backend = Hiccup(renderer)
+    client, _ = make_client(backend, retry=RetryPolicy(max_attempts=3, call_timeout_s=5))
+    ctx, lines = context(tmp_path, renderer, "train", client, data_dir=str(data_dir), runs=RUNS[:1], batch_size=4, epochs=1)
+    run(run_step(Train(), ctx))
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert summary["runs"] == [] and "sent more than once" in summary["failures"][0]["error"] and "save" not in backend.training_calls
+
+    class Rising(FakeBackend):
+        async def forward(self, run_handle, examples, *, backward):
+            out = await super().forward(run_handle, examples, backward=backward)
+            return {"metrics": {"loss:sum": out["metrics"]["loss:sum"] * (1 + run_handle["steps"]) ** 2}}
+
+    backend = Rising(renderer)
+    client, _ = make_client(backend)
+    ctx, lines = context(tmp_path / "rising", renderer, "train", client, data_dir=str(data_dir), runs=RUNS[:1], batch_size=2, epochs=2, updates_per_call=2)
+    run(run_step(Train(), ctx))
+    summary = json.loads((ctx.results_dir / "summary.json").read_text())
+    assert summary["runs"] == [] and "diverged" in summary["failures"][0]["error"] and "save" not in backend.training_calls
 
 
 def test_eval_compares_each_state_with_the_base_on_the_same_items(tmp_path, renderer, make_client, data_dir):
@@ -184,4 +253,4 @@ def test_a_config_can_keep_its_runs_in_their_own_folder(tmp_path, renderer, data
     )
     assert code == 0
     assert (tmp_path / "runs" / "train-pilot" / "results.jsonl").exists() and not (tmp_path / "runs" / "train").exists()
-    assert json.loads((tmp_path / "results" / "train-pilot" / "runs.json").read_text())["runs"][0]["name"] == "pilot-a"
+    assert json.loads((tmp_path / "results" / "train-pilot" / "summary.json").read_text())["runs"][0]["name"] == "pilot-a"

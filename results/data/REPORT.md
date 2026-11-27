@@ -1,6 +1,6 @@
 # Training data for the reasoning target
 
-Generated problems whose answers were fixed by a program before any model saw them, sorted by whether `thinkingmachines/Inkling-2-Mini:peft:65536:free` solves them in the fast setting and in the reasoning setting. Generated 2026-11-27T02:12:29+00:00 with generator version 1 and seed 20261126. None of these numbers is a headline result: scores come only from public benchmarks.
+Generated problems whose answers were fixed by a program before any model saw them, sorted by whether `thinkingmachines/Inkling-2-Mini:peft:65536:free` solves them in the fast setting and in the reasoning setting. Generated 2026-11-27T04:06:14+00:00 with generator version 1 and seed 20261126. None of these numbers is a headline result: scores come only from public benchmarks.
 
 - `fast` is a forced direct answer at effort 0.0, limited to 256 tokens.
 - `reasoning` is effort 0.0, free-running, limited to 8,192 tokens.
@@ -108,8 +108,21 @@ Sets that are compared with each other are matched on training tokens. The middl
 | hard-2000 | 1,949 | 221,087 | 0 | 0 | 1,949 | 0 | matched to 221,061 tokens |
 | shuffled-labels-2000 | 2,000 | 221,061 | 0 | 2,000 | 0 | 0 | answers permuted among items, 0 kept a right answer |
 | length-matched-random-2000 | 2,000 | 221,061 | 350 | 1,436 | 213 | 1 |  |
+| middle-2000-draw2 | 2,000 | 220,681 | 0 | 2,000 | 0 | 0 | draw 2, for seed 2 of the main comparison |
+| random-2000-draw2 | 2,211 | 220,675 | 608 | 1,180 | 422 | 1 | matched to 220,681 tokens; draw 2, for seed 2 of the main comparison |
+| middle-2000-draw3 | 2,000 | 218,917 | 0 | 2,000 | 0 | 0 | draw 3, for seed 3 of the main comparison |
+| random-2000-draw3 | 2,143 | 218,914 | 599 | 1,148 | 395 | 1 | matched to 218,917 tokens; draw 3, for seed 3 of the main comparison |
 
 Held out of every training set: a dev set of 150 easy, 150 middle, 150 hard, 0 rare items for sanity checks, 500 middle-band items (54,925 training tokens) that the pilot for rank and learning rate trains on, and 8 middle-band examples for the prompt-only arm (from the families arithmetic, calendar, code_trace, number_theory, ordering, rates, sequence, stock_story).
+
+The main comparison is run with three seeds, and each seed has its own draw of both sets. Draw 1 is the nested pair in the table (`middle-2000` and `random-2000`). Draws of the same kind come from the same pool, so they share items: middle draws 1 and 2 share 694; middle draws 1 and 3 share 685; middle draws 2 and 3 share 676; random draws 1 and 2 share 418; random draws 1 and 3 share 421; random draws 2 and 3 share 457.
+
+## Known flaws of the generated text
+
+These were found after the items were labeled. The items are left as they are, because the answers are right and the labels were made on this wording.
+
+- In the `stock_story` family, the template writes "a" before a place that starts with a vowel, as in "a orchard" and "a aquarium" (172 of 900 items).
+- In the `stock_story` family, places and goods are drawn independently, so a place is often paired with goods it would not hold, such as a print shop that stocks helmets (900 of 900 items).
 
 ## Cost of this stage
 

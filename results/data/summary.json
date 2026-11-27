@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T02:12:29+00:00",
+ "generated_at": "2026-11-27T04:06:14+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "seed": 20261126,
  "generator_version": 1,
@@ -1665,6 +1665,144 @@
     "stock_story": 143,
     "arithmetic": 140
    }
+  },
+  "middle-2000-draw2": {
+   "n_items": 2000,
+   "train_tokens": 220681,
+   "train_tokens_per_item": {
+    "n": 2000,
+    "mean": 110.3,
+    "min": 52.0,
+    "p50": 95.0,
+    "p90": 189.1,
+    "p95": 208.0,
+    "max": 311.0
+   },
+   "cells": {
+    "easy": 0,
+    "middle": 2000,
+    "hard": 0,
+    "rare": 0
+   },
+   "families": {
+    "calendar": 278,
+    "sequence": 229,
+    "code_trace": 219,
+    "arithmetic": 186,
+    "counting": 183,
+    "stock_story": 182,
+    "equations": 181,
+    "rates": 174,
+    "number_theory": 144,
+    "table": 118,
+    "ordering": 106
+   },
+   "short": false,
+   "draw": 2
+  },
+  "random-2000-draw2": {
+   "n_items": 2211,
+   "train_tokens": 220675,
+   "train_tokens_per_item": {
+    "n": 2211,
+    "mean": 99.8,
+    "min": 50.0,
+    "p50": 90.0,
+    "p90": 159.0,
+    "p95": 186.0,
+    "max": 311.0
+   },
+   "cells": {
+    "easy": 608,
+    "middle": 1180,
+    "hard": 422,
+    "rare": 1
+   },
+   "families": {
+    "arithmetic": 270,
+    "counting": 264,
+    "number_theory": 249,
+    "sequence": 226,
+    "code_trace": 213,
+    "calendar": 208,
+    "table": 177,
+    "stock_story": 161,
+    "ordering": 157,
+    "equations": 148,
+    "rates": 138
+   },
+   "token_budget": 220681,
+   "short": false,
+   "draw": 2
+  },
+  "middle-2000-draw3": {
+   "n_items": 2000,
+   "train_tokens": 218917,
+   "train_tokens_per_item": {
+    "n": 2000,
+    "mean": 109.5,
+    "min": 52.0,
+    "p50": 95.0,
+    "p90": 185.1,
+    "p95": 219.0,
+    "max": 311.0
+   },
+   "cells": {
+    "easy": 0,
+    "middle": 2000,
+    "hard": 0,
+    "rare": 0
+   },
+   "families": {
+    "calendar": 290,
+    "sequence": 233,
+    "code_trace": 208,
+    "rates": 187,
+    "equations": 183,
+    "stock_story": 178,
+    "counting": 173,
+    "arithmetic": 157,
+    "number_theory": 145,
+    "table": 131,
+    "ordering": 115
+   },
+   "short": false,
+   "draw": 3
+  },
+  "random-2000-draw3": {
+   "n_items": 2143,
+   "train_tokens": 218914,
+   "train_tokens_per_item": {
+    "n": 2143,
+    "mean": 102.2,
+    "min": 50.0,
+    "p50": 91.0,
+    "p90": 159.0,
+    "p95": 200.9,
+    "max": 311.0
+   },
+   "cells": {
+    "easy": 599,
+    "middle": 1148,
+    "hard": 395,
+    "rare": 1
+   },
+   "families": {
+    "arithmetic": 265,
+    "number_theory": 245,
+    "counting": 226,
+    "sequence": 221,
+    "table": 192,
+    "code_trace": 188,
+    "calendar": 171,
+    "stock_story": 168,
+    "ordering": 165,
+    "equations": 165,
+    "rates": 137
+   },
+   "token_budget": 218917,
+   "short": false,
+   "draw": 3
   }
  },
  "dev": {
@@ -1677,6 +1815,32 @@
   "n_items": 500,
   "train_tokens": 54925
  },
+ "shared_between_draws": {
+  "middle": {
+   "1 and 2": 694,
+   "1 and 3": 685,
+   "2 and 3": 676
+  },
+  "random": {
+   "1 and 2": 418,
+   "1 and 3": 421,
+   "2 and 3": 457
+  }
+ },
+ "known_flaws": [
+  {
+   "family": "stock_story",
+   "flaw": "the template writes \"a\" before a place that starts with a vowel, as in \"a orchard\" and \"a aquarium\"",
+   "items": 172,
+   "of": 900
+  },
+  {
+   "family": "stock_story",
+   "flaw": "places and goods are drawn independently, so a place is often paired with goods it would not hold, such as a print shop that stocks helmets",
+   "items": 900,
+   "of": 900
+  }
+ ],
  "prompt_examples": [
   {
    "id": "arithmetic-L2-00030",

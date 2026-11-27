@@ -7,8 +7,13 @@
 # tokens get the same number of updates: 252 at the size of 2,000 middle-band items.
 # The learning rate falls linearly to zero over a run.
 #
-# A seed changes the adapter's starting weights and the order of the batches. The
-# items in a set do not change with it.
+# The main comparison, middle band against random, has three seeds. A seed changes
+# the adapter's starting weights, the order of the batches and the draw of the data:
+# seed 1 trains on the nested sets `middle-2000` and `random-2000`, and seeds 2 and 3
+# on their own draws of both. The other runs use seed 1.
+#
+# The runs are listed in the order they train: the main comparison, then the
+# controls, then the size sweep.
 
 model_id = "thinkingmachines/Inkling-2-Mini:peft:65536:free"
 seed = 1
@@ -30,29 +35,34 @@ set = "middle-2000"
 seed = 1
 
 [[runs]]
-name = "middle-2000-s2"
-set = "middle-2000"
-seed = 2
-
-[[runs]]
-name = "middle-2000-s3"
-set = "middle-2000"
-seed = 3
-
-[[runs]]
 name = "random-2000-s1"
 set = "random-2000"
 seed = 1
 
 [[runs]]
-name = "random-2000-s2"
-set = "random-2000"
+name = "middle-2000-s2"
+set = "middle-2000-draw2"
 seed = 2
 
 [[runs]]
-name = "random-2000-s3"
-set = "random-2000"
+name = "random-2000-s2"
+set = "random-2000-draw2"
+seed = 2
+
+[[runs]]
+name = "middle-2000-s3"
+set = "middle-2000-draw3"
 seed = 3
+
+[[runs]]
+name = "random-2000-s3"
+set = "random-2000-draw3"
+seed = 3
+
+[[runs]]
+name = "shuffled-labels-2000"
+set = "shuffled-labels-2000"
+seed = 1
 
 [[runs]]
 name = "easy-2000"
@@ -62,11 +72,6 @@ seed = 1
 [[runs]]
 name = "hard-2000"
 set = "hard-2000"
-seed = 1
-
-[[runs]]
-name = "shuffled-labels-2000"
-set = "shuffled-labels-2000"
 seed = 1
 
 [[runs]]

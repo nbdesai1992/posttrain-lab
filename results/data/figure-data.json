@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T02:12:29+00:00",
+ "generated_at": "2026-11-27T04:06:14+00:00",
  "four_cells": [
   {
    "cell": "easy",
@@ -281,6 +281,42 @@
    "from_easy": 350,
    "from_middle": 1436,
    "from_hard": 213,
+   "from_rare": 1
+  },
+  {
+   "set": "middle-2000-draw2",
+   "n_items": 2000,
+   "train_tokens": 220681,
+   "from_easy": 0,
+   "from_middle": 2000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-2000-draw2",
+   "n_items": 2211,
+   "train_tokens": 220675,
+   "from_easy": 608,
+   "from_middle": 1180,
+   "from_hard": 422,
+   "from_rare": 1
+  },
+  {
+   "set": "middle-2000-draw3",
+   "n_items": 2000,
+   "train_tokens": 218917,
+   "from_easy": 0,
+   "from_middle": 2000,
+   "from_hard": 0,
+   "from_rare": 0
+  },
+  {
+   "set": "random-2000-draw3",
+   "n_items": 2143,
+   "train_tokens": 218914,
+   "from_easy": 599,
+   "from_middle": 1148,
+   "from_hard": 395,
    "from_rare": 1
   }
  ]

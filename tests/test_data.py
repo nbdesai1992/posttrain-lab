@@ -203,6 +203,28 @@ def test_the_pilot_slice_is_held_out_and_a_small_cell_is_marked_short():
     assert not sets["easy-100"]["short"] and not sets["middle-400"]["short"]
 
 
+def test_further_draws_leave_the_first_alone_and_report_what_they_share():
+    items = labeled_items()
+    plain = build_sets(items, seed=9, dev_per_cell=30, sizes=(50, 100, 400), main_size=100)
+    built = build_sets(items, seed=9, dev_per_cell=30, extra_draws=2, sizes=(50, 100, 400), main_size=100)
+    sets, cell, tokens = built["sets"], {i["id"]: i["cell"] for i in items}, {i["id"]: i["train_tokens"] for i in items}
+    assert all(sets[name] == entry for name, entry in plain["sets"].items())  # the sets that existed are unchanged
+    assert set(sets) - set(plain["sets"]) == {"middle-100-draw2", "random-100-draw2", "middle-100-draw3", "random-100-draw3"}
+    held_out = {i for ids in built["dev"].values() for i in ids} | set(built["prompt_examples"])
+    for draw in (2, 3):
+        middle, random_set = sets[f"middle-100-draw{draw}"], sets[f"random-100-draw{draw}"]
+        assert middle["n_items"] == 100 and {cell[i] for i in middle["items"]} == {"middle"} and middle["draw"] == draw
+        assert random_set["token_budget"] == middle["train_tokens"] and abs(random_set["train_tokens"] - middle["train_tokens"]) <= 160
+        assert len({cell[i] for i in random_set["items"]}) > 1 and not held_out & (set(middle["items"]) | set(random_set["items"]))
+        assert middle["items"] != sets["middle-100"]["items"] and random_set["items"] != sets["random-100"]["items"]
+    shared = built["shared_between_draws"]
+    assert set(shared["middle"]) == set(shared["random"]) == {"1 and 2", "1 and 3", "2 and 3"}
+    assert shared["middle"]["1 and 2"] == len(set(sets["middle-100"]["items"]) & set(sets["middle-100-draw2"]["items"])) < 100
+    assert shared["random"]["2 and 3"] == len(set(sets["random-100-draw2"]["items"]) & set(sets["random-100-draw3"]["items"]))
+    assert built == build_sets(items, seed=9, dev_per_cell=30, extra_draws=2, sizes=(50, 100, 400), main_size=100)
+    assert plain["shared_between_draws"] == {"middle": {}, "random": {}}
+
+
 def test_shuffled_labels_and_length_matching():
     items = labeled_items()
     built = build_sets(items, seed=9, dev_per_cell=30, sizes=(50, 100, 400), main_size=100)

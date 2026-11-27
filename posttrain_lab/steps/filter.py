@@ -14,6 +14,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import re
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -86,7 +87,7 @@ class Filter(Survey):
                 }
             )
         (ctx.runs_dir / "items.jsonl").write_text("".join(json.dumps(row) + "\n" for row in labeled), encoding="utf-8")
-        built = build_sets(labeled, seed=ctx.config.get("seed", 0), dev_per_cell=ctx.config.get("dev_per_cell", 100), pilot_items=ctx.config.get("pilot_items", 0), sizes=tuple(ctx.config.get("sizes", SIZES)), main_size=ctx.config.get("main_size", MAIN_SIZE))
+        built = build_sets(labeled, seed=ctx.config.get("seed", 0), dev_per_cell=ctx.config.get("dev_per_cell", 100), pilot_items=ctx.config.get("pilot_items", 0), extra_draws=ctx.config.get("extra_draws", 0), sizes=tuple(ctx.config.get("sizes", SIZES)), main_size=ctx.config.get("main_size", MAIN_SIZE))
         calls = list(read_jsonl(ctx.runs_dir / "calls.jsonl"))
         stored = {row.get("item") for row in read_jsonl(ctx.runs_dir / "results.jsonl")}
         ctx.scratch["left_out"] = len({item_id for item_id in stored if item_id and item_id not in items})
@@ -114,7 +115,7 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
             "train_tokens_per_item": describe((r["train_tokens"] for r in rows), 1),
             "cells": {cell: sum(1 for r in rows if r["cell"] == cell) for cell in CELLS},
             "families": dict(Counter(r["family"] for r in rows).most_common()),
-            **{k: entry[k] for k in ("token_budget", "short", "unchanged_answers") if k in entry},
+            **{k: entry[k] for k in ("token_budget", "short", "unchanged_answers", "draw") if k in entry},
         }
     reasoning_tokens = [r["reasoning_completion_tokens"] for r in labeled]
     return {
@@ -166,6 +167,8 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         "sets": sets,
         "dev": {cell: len(ids) for cell, ids in built["dev"].items()},
         "pilot": {k: built["pilot"][k] for k in ("n_items", "train_tokens")},
+        "shared_between_draws": built["shared_between_draws"],
+        "known_flaws": known_flaws(labeled),
         "prompt_examples": [{"id": i, "family": by_id[i]["family"], "level": by_id[i]["level"]} for i in built["prompt_examples"]],
         "available_after_holding_out": built["available"],
         "targets": {"middle": max(ctx.config.get("sizes", SIZES)), "easy": ctx.config.get("main_size", MAIN_SIZE), "hard": ctx.config.get("main_size", MAIN_SIZE)},
@@ -183,6 +186,24 @@ def build_summary(ctx: StepContext, labeled: list[dict], built: dict, calls: lis
         "max_concurrency": ctx.config.get("client", {}).get("max_concurrency"),
         "canary": built["canary"],
     }
+
+
+def known_flaws(labeled: list[dict]) -> list[dict]:
+    """Flaws of the generated text that were found after the items were labeled and left as they are."""
+    stock = [row for row in labeled if row["family"] == "stock_story"]
+    article = sum(1 for row in stock if re.search(r"\b[Aa] [aeiou]", row["question"]))
+    return [
+        {
+            "family": "stock_story",
+            "flaw": 'the template writes "a" before a place that starts with a vowel, as in "a orchard" and "a aquarium"',
+            "items": article,
+            "of": len(stock),
+        },
+        {
+            "family": "stock_story",
+            "flaw": "places and goods are drawn independently, so many items pair a place with goods it would not hold, such as a print shop that stocks helmets",
+        },
+    ]
 
 
 def what_was_cut(build: dict, candidates: int, labeled: list[dict], built: dict, left_out: int = 0) -> list[dict]:
@@ -335,6 +356,8 @@ def render_report(summary: dict) -> str:
             note.append(f"answers permuted among items, {s['unchanged_answers']} kept a right answer")
         if "token_budget" in s:
             note.append(f"matched to {s['token_budget']:,} tokens")
+        if "draw" in s:
+            note.append(f"draw {s['draw']}, for seed {s['draw']} of the main comparison")
         add(f"| {name} | {s['n_items']:,} | {s['train_tokens']:,} | " + " | ".join(f"{s['cells'][cell]:,}" for cell in CELLS) + f" | {'; '.join(note)} |")
     add("")
     add(
@@ -344,6 +367,27 @@ def render_report(summary: dict) -> str:
         f"that the pilot for rank and learning rate trains on, and {len(summary['prompt_examples'])} middle-band examples for the prompt-only arm "
         f"(from the families {', '.join(sorted({e['family'] for e in summary['prompt_examples']}))})."
     )
+
+    shared = summary.get("shared_between_draws", {})
+    if any(len(pairs) for pairs in shared.values()):
+        add("")
+        add(
+            "The main comparison is run with three seeds, and each seed has its own draw of both sets. Draw 1 is the nested pair in the table "
+            "(`middle-2000` and `random-2000`). Draws of the same kind come from the same pool, so they share items: "
+            + "; ".join(f"{kind} draws {pair} share {count:,}" for kind, pairs in shared.items() for pair, count in pairs.items())
+            + "."
+        )
+
+    flaws = summary.get("known_flaws", [])
+    if flaws:
+        add("")
+        add("## Known flaws of the generated text")
+        add("")
+        add("These were found after the items were labeled. The items are left as they are, because the answers are right and the labels were made on this wording.")
+        add("")
+        for flaw in flaws:
+            count = f" ({flaw['items']:,} of {flaw['of']:,} items)" if "items" in flaw else ""
+            add(f"- In the `{flaw['family']}` family, {flaw['flaw']}{count}.")
 
     add("")
     add("## Cost of this stage")
@@ -379,7 +423,7 @@ def write_outputs(results_dir: Path, labeled: list[dict], built: dict, summary: 
         "summary.json": json.dumps(summary, indent=1) + "\n",
         "figure-data.json": json.dumps(figure_data(summary), indent=1) + "\n",
         "REPORT.md": render_report(summary),
-        "sets.json": json.dumps({k: built[k] for k in ("canary", "seed", "sets", "dev", "pilot", "prompt_examples")}) + "\n",
+        "sets.json": json.dumps({k: built[k] for k in ("canary", "seed", "sets", "dev", "pilot", "shared_between_draws", "prompt_examples")}) + "\n",
     }
     for name, text in files.items():
         (results_dir / name).write_text(text, encoding="utf-8")

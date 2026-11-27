@@ -70,7 +70,8 @@ def permuted_answers(ids: list[str], answers: dict[str, str], seed: int) -> dict
 
 
 def build_sets(
-    items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_examples: int = 8, pilot_items: int = 0, sizes=SIZES, main_size: int = MAIN_SIZE
+    items: list[dict], *, seed: int, dev_per_cell: int = 100, prompt_examples: int = 8, pilot_items: int = 0, extra_draws: int = 0,
+    sizes=SIZES, main_size: int = MAIN_SIZE,
 ) -> dict:
     """Every training set the arms need, as lists of item ids.
 
@@ -128,6 +129,20 @@ def build_sets(
     moved = permuted_answers(main, answers, seed)
     add(f"shuffled-labels-{main_size}", main, cell="middle", answers=moved, unchanged_answers=sum(1 for i in main if moved.get(i) == answers[i]))
     add(f"length-matched-random-{main_size}", length_matched(main, everything, tokens, seed), cell="all")
+    # More draws of the two main sets, so that seeds can vary the data as well as the
+    # training. Draw 1 is the nested set above. Each further draw has its own shuffle,
+    # and its random set is matched to the tokens of its own middle-band set.
+    draws = {"middle": {1: main}, "random": {1: sets[f"random-{main_size}"]["items"]}}
+    for draw in range(2, extra_draws + 2):
+        chosen = shuffled(available["middle"], seed, f"middle-draw-{draw}")[:main_size]
+        budget = sum(tokens[i] for i in chosen)
+        add(f"middle-{main_size}-draw{draw}", chosen, cell="middle", short=len(chosen) < main_size, draw=draw)
+        add(f"random-{main_size}-draw{draw}", take_tokens(shuffled(everything, seed, f"random-draw-{draw}"), tokens, budget), cell="all", token_budget=budget, draw=draw)
+        draws["middle"][draw], draws["random"][draw] = chosen, sets[f"random-{main_size}-draw{draw}"]["items"]
+    shared = {
+        kind: {f"{a} and {b}": len(set(by_draw[a]) & set(by_draw[b])) for a in by_draw for b in by_draw if a < b}
+        for kind, by_draw in draws.items()
+    }
     pilot = {"train": pilot_train, "n_items": len(pilot_train), "train_tokens": sum(tokens[i] for i in pilot_train)}
     return {
         "seed": seed,
@@ -135,6 +150,7 @@ def build_sets(
         "sets": sets,
         "dev": dev,
         "pilot": pilot,
+        "shared_between_draws": shared,
         "prompt_examples": examples,
         "held_out": len(held_out),
         "available": {cell: len(ids) for cell, ids in available.items()},
