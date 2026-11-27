@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-26T23:53:47+00:00",
+ "generated_at": "2026-11-27T00:01:26+00:00",
  "model_id": "thinkingmachines/Inkling-2-Mini:peft:65536:free",
  "versions": {
   "tinker": "0.40.1",
@@ -3394,8 +3394,8 @@
   "storage_estimated_monthly_cost_usd": 0.0,
   "checkpoints_listed": 1,
   "checkpoints_listed_bytes": 738789750,
-  "usage_window_start": "2026-11-26T00:00:00+00:00",
-  "usage_cost_data_through": null,
+  "usage_window_start": "2026-11-26T01:00:00+00:00",
+  "usage_cost_data_through": "2026-11-27T00:00:00+00:00",
   "usage_by_model_and_type": {
    "thinkingmachines/Inkling-2-Mini:peft:65536:free | sampling_sample": {
     "tokens": 51478,

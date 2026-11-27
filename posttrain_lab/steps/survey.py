@@ -629,12 +629,24 @@ def render_report(summary: dict) -> str:
     add("")
     add("## The reference from here on")
     add("")
+    both = [b for b in summary["benchmarks"].values() if b.get("reasoning_minus_slow") and b["reasoning_minus_slow"].get("estimate") is not None]
+    ahead = [b for b in both if b["reasoning_minus_slow"]["low"] > 0]
+    behind = [b for b in both if b["reasoning_minus_slow"]["high"] < 0]
+    lower = [b for b in both if b["reasoning_minus_slow"]["estimate"] < 0 and b not in behind]
+    compared = (
+        f"Paired on the same items, the reasoning setting is ahead of effort 0.9 on {len(ahead)} of {len(both)} benchmarks with an interval that excludes zero, "
+        f"and behind on {len(behind)}"
+        + (" (" + ", ".join(f"{b['title']}, {signed(b['reasoning_minus_slow'])}" for b in behind) + ")" if behind else "")
+        + ". "
+        + ("Its estimate is lower, with an interval that includes zero, on " + "; ".join(f"{b['title']}, {signed(b['reasoning_minus_slow'])}" for b in lower) + ". " if lower else "")
+    )
     add(
         "The study's reference line, and the teacher for its training data, is the reasoning setting: free-running effort 0.0 "
         "with the 8,192-token limit. Effort 0.9 was the first choice and was measured in full with the same limit. It is set aside "
         "because on the judging and knowledge benchmarks a fifth to a third of its replies ran to the limit without giving an answer, "
-        "while effort 0.0 reasons for about half as long, is cut off less often and scores as well or better. "
-        "Effort 0.9 stays in every table as measured and is not run again."
+        "while effort 0.0 reasons for about half as long and is cut off less often. "
+        + compared
+        + "Effort 0.9 stays in every table as measured and is not run again."
     )
 
     add("")
