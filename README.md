@@ -4,9 +4,9 @@ This repository holds a post-training study of Inkling 2 Mini, a small open-weig
 
 ## Status
 
-The smoke test and the survey ran on 2026-11-26, and the survey now includes a full pass in the reasoning setting, which is the study's reference. The data build and the filter for the first training target are in progress. The `train` and `eval` steps are written and tested offline, and no adapter from the planned runs exists yet. The `report` step prints "not implemented yet".
+The smoke test and the survey ran on 2026-11-26, and the survey includes a full pass in the reasoning setting, which is the study's reference. The training data for the first target, reasoning without the wait, was generated, checked for leaks and labeled on 2026-11-27. The `train` and `eval` steps are written and tested, and no adapter from the planned runs exists yet. The `report` step prints "not implemented yet".
 
-The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md) and [results/survey/REPORT.md](results/survey/REPORT.md), with the full data in the `summary.json` next to each.
+The numbers are in [results/smoke/REPORT.md](results/smoke/REPORT.md), [results/survey/REPORT.md](results/survey/REPORT.md) and [results/data/REPORT.md](results/data/REPORT.md), with the full data in the `summary.json` next to each.
 
 ## What the survey found
 
@@ -40,6 +40,21 @@ The target rule is applied to jobs. A job's gap is the unweighted mean, over the
 | Filling a schema | JSONSchemaBench | +2.3 | +2.3 | usable as is |
 
 Reasoning without the wait is the one training target. IFEval and MMLU-Pro are watched for forgetting and never trained. The pointwise form of JudgeBench is outside the list that was fixed beforehand, so anything built on it would be exploratory.
+
+## The training data
+
+The training data for the reasoning target is made of generated problems whose answers are fixed by the program that writes them. There are eleven families (arithmetic, word problems about stock and rates, sequences, number theory, tables, code tracing, clock and calendar arithmetic, counting, equations and ordering) at up to seven levels of difficulty. No benchmark item is used to make them. Each candidate is compared with every survey benchmark item, and 72 of 11,942 were dropped for resembling one.
+
+Each of the 11,870 that remained was run in the fast setting and in the reasoning setting, and graded by its program. That sorts the problems into four cells.
+
+| | reasoning right | reasoning wrong |
+|---|---|---|
+| fast right | easy, 3,162 | rare, 2 |
+| fast wrong | middle band, 6,447 | hard, 2,259 |
+
+The middle band is where reasoning helps, and it is the data the main training arm uses. Nearly all of the hard cell (2,139 of 2,259) is there because the reasoning reply reached its 8,192-token limit before giving an answer, so that cell mostly holds problems that are too long for the teacher.
+
+The training sets are drawn with fixed seeds and saved as lists of item ids in `results/data/sets.json`. Sets that are compared with each other are matched on training tokens. There are middle-band sets of 250, 500, 1,000, 2,000 and 4,000 items, each inside the next, and random draws from all cells with the same token counts. At the size of the 2,000-item middle-band set there are also an easy-only set, a hard-only set, a copy of the middle-band set with its answers moved between items, and a random set matched item by item on length. Held out of all of them are 150 dev items from each cell, 500 middle-band items for the pilot that fixes rank and learning rate, and eight worked examples for a prompt-only arm. A training example is the prompt followed by the answer alone, rendered for the fast setting.
 
 ## What the smoke test found
 

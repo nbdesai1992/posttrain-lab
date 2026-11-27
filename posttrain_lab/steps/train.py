@@ -121,9 +121,23 @@ class Train(Step):
                 out[cell] = round(result.get("metrics", {}).get("loss:sum", 0.0) / max(sum(sum(w) for _, w in batch), 1.0), 5)
             return out
 
+        events_seen = len(getattr(backend, "events", []))
+        states: dict[str, int] = {}
+
+        def note_events() -> None:
+            """Write down what the service said about its queue since the last look."""
+            nonlocal events_seen
+            for event in getattr(backend, "events", [])[events_seen:]:
+                record = event.to_dict()
+                append_jsonl(ctx.runs_dir / "events.jsonl", {"run": p["name"], **record})
+                label = record.get("state") or record.get("type")
+                states[label] = states.get(label, 0) + 1
+            events_seen = len(getattr(backend, "events", []))
+
         dev_loss_before = await dev_loss()
         loop_started = time.monotonic()
         losses: list[float] = []
+        update_seconds: list[float] = []
         chunk = ctx.config.get("updates_per_call", 16)
         for start in range(0, len(batches), chunk):
             group = batches[start : start + chunk]
@@ -131,6 +145,8 @@ class Train(Step):
             for batch, result in zip(group, results):
                 weight = sum(sum(examples[i][1]) for i in batch)
                 losses.append(round(result.get("metrics", {}).get("loss:sum", 0.0) / max(weight, 1.0), 5))
+                update_seconds.append(round(result.get("seconds", 0.0), 2))
+            note_events()
             append_jsonl(ctx.runs_dir / "progress.jsonl", {"run": p["name"], "updates": start + len(group), "of": len(batches), "loss": losses[-1], "seconds": round(time.monotonic() - started, 1)})
             ctx.out(f"    {p['name']}: {start + len(group)}/{len(batches)} updates, loss {losses[-1]:.4f}, {time.monotonic() - started:.0f} s")
         loop_seconds = time.monotonic() - loop_started
@@ -166,6 +182,8 @@ class Train(Step):
             "train_seconds": round(loop_seconds, 1),
             "seconds_per_update": round(loop_seconds / len(batches), 2),
             "run_seconds": round(time.monotonic() - started, 1),  # with set-up, the save, the load and the dev replies
+            "update_seconds": update_seconds,
+            "service_events": states,
             "loss_first": losses[0],
             "loss_last": round(sum(tail) / len(tail), 5),
             "losses": losses,
@@ -183,7 +201,7 @@ class Train(Step):
         }
 
     async def finish(self, ctx: StepContext, rows: list[dict]) -> None:
-        runs = [{k: v for k, v in row.items() if k not in ("key", "kind", "params", "losses")} for row in rows]
+        runs = [{k: v for k, v in row.items() if k not in ("key", "kind", "params", "losses", "update_seconds")} for row in rows]
         ctx.results_dir.mkdir(parents=True, exist_ok=True)
         (ctx.results_dir / "runs.json").write_text(json.dumps({"model_id": ctx.config.get("model_id"), "runs": runs}, indent=1) + "\n", encoding="utf-8")
         lines = ["# Training runs", "", "One adapter per run. Dev accuracy is on held-out generated items in the fast setting and is a sanity check only.", "",
