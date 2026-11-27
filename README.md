@@ -2,6 +2,8 @@
 
 This repository holds a post-training study of Inkling 2 Mini, a small open-weight model that Tinker lets anyone train and sample at no charge. The study asks which jobs the model already does well enough on public benchmarks, and whether cheap synthetic data with program-made labels can close the gaps that remain. Everything runs on Tinker's free model ID, so a stranger with one free key can rerun it and extend it. Results are scored only on public benchmarks, before and after training, including jobs that were never trained.
 
+The write-up, with the design, the predictions written before any run, the results and figures, is at [nealdes.ai/research/data-value](https://nealdes.ai/research/data-value).
+
 ## Status
 
 All planned runs are done. The smoke test and the survey ran on 2026-11-26, and the survey includes a full pass in the reasoning setting, which is the study's reference. The training data for the first target, reasoning without the wait, was generated, checked for leaks and labeled on 2026-11-27, a pilot fixed the LoRA rank at 16 and the learning rate at 1.8e-4, and the 18 training runs in `configs/train.toml` and the evaluation of all 20 model states finished the same day. Every call used the free model ID, and the service's usage report prices all of it at $0.
